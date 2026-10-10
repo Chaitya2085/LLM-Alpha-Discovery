@@ -1,0 +1,22 @@
+{
+  "universe": "csi300",
+  "start": "2014-01-02",
+  "end": "2026-10-09",
+  "trading_days": 3102,
+  "unique_stocks_ever_in_universe": 700,
+  "members_per_day_min_median_max": [
+    298,
+    300,
+    300
+  ],
+  "member_days_missing_close_pct": 1.936,
+  "member_days_suspended_pct": 1.936,
+  "member_days_limit_up_pct": 0.711,
+  "member_days_limit_down_pct": 0.515,
+  "member_days_abs_return_gt_25pct": 0,
+  "index_days": 3102,
+  "index_level_first_last": [
+    2321.98,
+    4317.25
+  ]
+}

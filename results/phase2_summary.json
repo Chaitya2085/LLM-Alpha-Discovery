@@ -1,0 +1,23 @@
+{
+  "discovery_period": [
+    "2014-07-01",
+    "2020-12-28"
+  ],
+  "factors_in_library": 251,
+  "models": 4,
+  "seed_included": true,
+  "valid": 245,
+  "scored": 245,
+  "strong": 102,
+  "novel": 140,
+  "slow": 182,
+  "shortlist": 28,
+  "best_alpha158_single_feature_rank_ic": {
+    "feature": "ROC5",
+    "rank_ic": 0.0429,
+    "t": 8.68,
+    "median_abs_rank_ic": 0.0185,
+    "top10_abs": 0.036
+  },
+  "seconds": 114
+}
