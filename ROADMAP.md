@@ -1,165 +1,168 @@
 # Roadmap
 
-Where the project is going, phase by phase: what gets built, how we know it worked,
-and what each phase needs from us.
+**Product goal:** an AI research team for the **Indian stock market**. A team of AI
+agents discovers, tests and combines stock-picking signals on NSE stocks, a prediction
+model ranks stocks with a confidence score, and a high-tech "trading floor" web app
+lets people watch the agents work, ask them questions, and see honest results. It
+works in English and Hindi, phone first.
 
-**End goal:** a system where AI agents discover, test and combine stock-picking
-signals, a prediction model ranks stocks with a confidence score, and a high-tech web
-app shows it all live: today's predictions, why the model made them, how accurate it
-has been, and the agents at work.
+**Research goal:** test, honestly, whether LLM-discovered signals are real or just
+memory. China's CSI300 (the market used in the original paper) remains our research
+benchmark; India is the product market.
 
 | Phase | What | Status |
 |---|---|---|
-| 1 | Data, backtester, human-designed baselines | **Done** |
-| 2 | LLMs write factors; scored on 2014–2020 | **Done** |
-| 3 | Feedback loop: LLM agents learn from their results | **Next** |
-| 4 | Prediction model: combine factors, confidence scores, market regimes | |
-| 5 | Honest test on 2021–2026 + leakage experiment | |
-| 6 | Multi-agent system that runs the whole pipeline | |
-| 7 | High-tech web app (backend API + dashboard) | |
-| 8 | Deploy, demo video, final report | |
+| 1 | China data, backtester, baselines (paper's market) | **Done** |
+| 2 | LLMs write factors: 4 models, 191 factors, scored | **Done** |
+| 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Next** |
+| 4 | Feedback loop: LLM agents learn from their results each round | |
+| 5 | Prediction model: combined factors, confidence scores, market regimes | |
+| 6 | Honest test on held-out years + leakage experiment | |
+| 7 | AI agent team: the "trading floor" | |
+| 8 | Web app: war room, research lab, track record (English and Hindi) | |
+| 9 | Compliance review, deploy, demo video, final report | |
+
+---
+
+## Rules for an Indian product (SEBI)
+
+This shapes the product, so it comes first. *Not legal advice: get a SEBI compliance
+professional to review before launching publicly.*
+
+- Giving specific **buy/sell/hold calls on named stocks** to the public is investment
+  advice or research. It needs **SEBI registration** as a Research Analyst or
+  Investment Adviser. SEBI actively acts against unregistered "finfluencers".
+- **From 1 July 2026**, educational content may only use stock price data that is
+  **at least 30 days old**, and may not present securities in a way that suggests
+  future moves (SEBI circular of 8 May 2026).
+- Unregistered people may not make performance or return claims.
+
+So the product has three modes:
+
+| Mode | Who | What it shows | Registration |
+|---|---|---|---|
+| **Learn** (public) | Everyone | Agents at work, factor lab, backtests, model accuracy, all on data **30+ days old**; no current calls on named stocks | Not needed |
+| **Personal** (local) | You, on your own computer | Full live predictions for your own research | Not needed (not published) |
+| **Pro** (future) | Subscribers | Live ranked picks with confidence and reasons | **Needs SEBI RA registration, or a registered partner** |
+
+A **Compliance agent** (Phase 7) checks every output: data age in Learn mode,
+disclaimers, and no advice-style wording.
 
 ---
 
 ## What "accurate" means here
 
-Stock returns are mostly noise, so no honest model is right about individual stocks
-"most of the time". Professional funds are happy when their picks beat the market
-55–60% of the time, because small, consistent edges compound. A backtest showing
-80–90% accuracy is almost always a sign of a mistake such as look-ahead or leakage,
-which is exactly what this project is built to catch.
+No honest model is right about individual stocks most of the time. Funds are happy when
+picks beat the market 55–60% of the time, because small steady edges compound. A
+backtest showing 80–90% accuracy almost always means look-ahead or leakage, which is
+what this project is built to catch. So we measure accuracy in meaningful ways and push
+each as high as the honest test allows:
 
-So we measure accuracy in ways that are meaningful and achievable, and we push each
-one as high as the honest test allows:
-
-| Metric | What it means | Today | Target (on held-out 2021–2026) |
-|---|---|---|---|
-| **Weekly hit rate** | Share of weeks our top 50 beat the index | measured in Phase 4 | **55–60%+** |
-| **High-confidence hit rate** | Same, but only on weeks/stocks the model is confident about | measured in Phase 4 | **60%+** on fewer, stronger calls |
-| **Rank IC** | How well the ranking matches what actually happens | 0.045 (baseline model) | **0.06–0.08** |
-| **Return after costs vs index** | Does it make money after trading costs? | ≈ +0.7%/yr (baseline) | **+5%/yr or more** |
-| **Information ratio** | Excess return per unit of risk | 0.13 (baseline) | **0.7+** |
-| **Calibration** | When it says "70% confident", is it right ~70% of the time? | n/a | within ±5 points |
-
-The biggest accuracy gains in this kind of work come from five things, and Phases 3–5
-use all of them:
-
-1. **Predict weekly, not daily.** Day-to-day moves are close to random and cost a lot
-   to trade; 5-day returns are more predictable and cheaper to act on.
-2. **Combine many weak signals.** One factor is weak; dozens of different ones,
-   combined by a model, are much stronger (an ensemble).
-3. **Abstain when unsure.** A confidence score lets the system act only on its
-   strongest calls, which raises the hit rate on the calls it does make.
-4. **Adapt to the market regime.** Signals that work in calm markets often fail in
-   crashes; detecting the regime and re-weighting helps.
-5. **Learn from mistakes.** The feedback loop tells the LLMs what failed (for example
-   wrong-signed momentum ideas), so later factors are better.
-
----
-
-## Phase 3: Feedback loop (next)
-
-LLMs stop guessing blind. After each round, every model gets its results back and
-writes the next batch with that knowledge.
-
-- **Generator agent** (one per LLM): proposes factors, as in Phase 2.
-- **Critic agent**: turns scores into plain feedback, e.g. "your 5 momentum ideas
-  worked backwards: this market reverts", "`X` duplicates baseline feature ROC5",
-  "`Y` flips every day, so trading costs kill it", "these 3 worked: build on them".
-- **Stricter judging**: factors must hold up **long-only, after costs, at a weekly
-  horizon**, not just predict on average.
-- Several rounds per model; we track whether each round's factors get better.
-
-**Done when:** each model's later rounds beat its first round on the shortlist rate,
-and the run is reproducible from `llm_runs/`.
-**Needs from us:** the same free API keys; about 30–60 minutes of runs.
-
-## Phase 4: Prediction model (accuracy)
-
-Turn the best factors into one prediction per stock, with a confidence score.
-
-- **Ensemble model**: LightGBM ranking model on the shortlisted LLM factors plus
-  Alpha158, trained walk-forward (only on the past), predicting **5-day** returns.
-- **Confidence score**: from agreement between models and how far a stock's score is
-  from the crowd; calibrated so "70%" means 70%.
-- **Regime detection**: a simple, explainable model labels each period calm,
-  trending or turbulent; factor weights adapt to the regime.
-- **Portfolio rules**: hold the top stocks, trade only when the edge beats the cost.
-- Everything still chosen on 2014–2020 only.
-
-**Done when:** on 2014–2020 cross-validation, the ensemble clearly beats the best
-single factor and the Phase 1 baseline on every metric in the table above.
-
-## Phase 5: Honest test
-
-The moment of truth, run once on the untouched **2021–2026** data.
-
-- Walk-forward results with costs, China trading rules, and every metric above.
-- **Leakage experiment**: the same pipeline with LLMs whose training data ends
-  *before* the test years vs *after* (older open models via Ollama), and with tickers
-  and dates hidden. If results collapse, the "alpha" was memory.
-- **Deflated Sharpe ratio**: corrects for how many ideas we tried.
-- Comparison with the paper's claimed +53.17% on its test window.
-
-**Done when:** we can state, with evidence, how accurate the system really is.
-**Needs from us:** Ollama installed, plus one or two older open models (I'll list
-which).
-
-## Phase 6: Multi-agent system
-
-The pipeline becomes a team of AI agents that work together, each with one job and
-tools to do it:
-
-| Agent | Job | Tools |
+| Metric | What it means | Target (held-out years) |
 |---|---|---|
-| **Orchestrator** | Plans the run, assigns work, decides when to stop | all agents |
-| **Researcher** | Proposes new factor ideas (several LLMs) | factor language, library |
-| **Critic** | Reviews results, explains failures, gives feedback | scorer, backtester |
-| **Risk manager** | Flags crowded, unstable or costly signals; checks regime | regime model, cost model |
-| **Portfolio agent** | Builds today's ranked list with confidence | prediction model |
-| **Explainer** | Writes plain-English reasons for each prediction | factor values, LLM |
+| **Weekly hit rate** | Share of weeks our top picks beat the index | **55–60%+** |
+| **High-confidence hit rate** | Same, on the model's confident calls only | **60%+** |
+| **Rank IC** | How well the ranking matches what happens | **0.06–0.08** |
+| **Return after costs vs index** | Makes money after Indian trading costs? | **+5%/yr or more** |
+| **Information ratio** | Excess return per unit of risk | **0.7+** |
+| **Calibration** | "70% confident" is right about 70% of the time | within ±5 points |
 
-Built as small, testable Python classes with a shared message log, so every agent
-decision is saved and can be replayed (and shown live in the UI). We may adopt an agent
-framework such as LangGraph if it makes this simpler; the decision is made when we get
-there.
-
-**Done when:** one command runs a full research round end to end with agents, and
-every step is logged.
-
-## Phase 7: High-tech web app
-
-A fast, modern dashboard, dark-themed, with live updates and smooth animation.
-
-**Screens**
-1. **Command centre**: today's top-ranked stocks with confidence, market regime,
-   recent accuracy, and a live feed of agent activity.
-2. **Stock view**: price chart with the model's past predictions overlaid, and the
-   Explainer's reasons ("ranked high because…").
-3. **Factor lab**: type an idea in plain English ("stocks recovering on rising
-   volume"); the Researcher agent writes the formula, tests it, and shows the
-   results in seconds.
-4. **Agent console**: watch agents propose, critique and refine factors in real time.
-5. **Model arena**: compare LLMs head to head (the Phase 2 comparison, live).
-6. **Track record**: hit rate, calibration and returns over time, honestly reported.
-
-**Tech** (decided when we start; all have free tiers)
-- Backend: **FastAPI** (Python) wrapping the existing code, with live updates over
-  WebSockets.
-- Frontend: **Next.js + React + Tailwind**, interactive financial charts, smooth
-  animations.
-- Daily refresh: a scheduled job pulls the newest data and updates predictions.
-
-**Done when:** the app runs locally with one command and shows real predictions.
-**Needs from us:** Node.js installed (I'll guide), a free Vercel account (frontend) and
-a free backend host (Render, Railway or Hugging Face Spaces; chosen in Phase 8).
-
-## Phase 8: Deploy and present
-
-- Put the app online (free tiers), with the API keys stored safely on the hosts.
-- Final report: method, honest results, what worked, what didn't.
-- 3-minute demo video and a polished README with screenshots.
+How we raise accuracy: predict **weekly** instead of daily; **combine many factors** in an
+ensemble; **abstain when unsure** (confidence scores); **adapt to the market regime**;
+and **feed mistakes back** to the LLMs.
 
 ---
 
-*Research and education only; not financial advice.*
+## Phase 3: Indian market data (next)
+
+- **Prices:** NSE's official daily bhavcopy archive (every listed stock, including
+  ones later delisted, so no survivorship bias), with Yahoo Finance (`.NS` tickers) as
+  a fallback. Downloaded on your computer; the code is market-agnostic, so everything
+  from Phases 1–2 reruns on India.
+- **Universe:** a point-in-time list of the ~200 most liquid NSE stocks each month (by
+  traded value), roughly Nifty 200 size, without needing historical index lists.
+- **Benchmark:** Nifty 50 and Nifty 200 index levels.
+- **Indian rules in the backtester:** price bands (circuit limits 2/5/10/20%), T+1
+  settlement, NSE holidays.
+- **Indian costs:** about 0.12% to buy and 0.10% to sell for delivery (STT 0.1% each
+  way, stamp duty 0.015% on buys, exchange and GST charges), plus ₹15.93 DP charge per
+  stock sold.
+- **Baselines:** Nifty buy-and-hold, classic factors, LightGBM on Alpha158, the same
+  table as Phase 1, for India.
+- Re-score all 191 LLM factors on Indian data: do they travel from China to India?
+
+**Needs from you:** run the downloader on your Mac (about 20–40 minutes the first
+time).
+
+## Phase 4: Feedback loop
+
+- **Researcher agents** (one per LLM) propose factors; the **Critic agent** turns scores
+  into plain feedback ("your momentum ideas worked backwards", "this copies ROC5",
+  "this flips daily so costs kill it", "build on these 3").
+- Judged **weekly, long-only, after costs**. Several rounds; we track whether each round
+  improves.
+
+## Phase 5: Prediction model (accuracy)
+
+- **Ensemble**: LightGBM ranking model on shortlisted LLM factors plus Alpha158, trained
+  walk-forward, predicting **5-day** returns.
+- **Confidence scores**, calibrated. **Regime detection** (calm, trending, turbulent) with
+  regime-aware weights. Trade only when the edge beats the cost.
+
+## Phase 6: Honest test
+
+- Run once on untouched later years, for India and China, with costs and local rules.
+- **Leakage experiment**: LLMs trained before vs after the test years (older open models
+  via Ollama), plus hidden tickers and dates. **Deflated Sharpe** for the number of ideas
+  tried. Compare with the paper's +53.17% claim.
+
+## Phase 7: AI agent team, the "trading floor"
+
+A team of agents, each with one job, working like a research firm. Every action is
+logged, so it can be replayed and shown live in the app.
+
+| Desk | Agent | Job |
+|---|---|---|
+| Head office | **Chief Strategist** | Plans each day, assigns work, asks you to approve big decisions |
+| Market data | **Data Collector** | Pulls NSE data after the 3:30 pm IST close |
+| | **Data Checker** | Catches missing or odd data before anyone uses it |
+| Research lab | **Researchers** (Gemini, gpt-oss, Nemotron, …) | Propose new factors; each LLM sits at its own desk |
+| | **Critic** | Reviews results, explains failures, gives feedback |
+| Model room | **Model Trainer** | Retrains the ensemble, checks accuracy and calibration |
+| | **Regime Watcher** | Labels the market mood; flags regime changes |
+| Risk & compliance | **Risk Officer** | Flags crowded, unstable or costly signals |
+| | **Compliance Officer** | Enforces SEBI rules: data age, disclaimers, wording |
+| Communications | **Explainer** | Plain-English and Hindi reasons for every ranking |
+| | **Reporter** | Evening digest after market close |
+
+## Phase 8: Web app
+
+Inspired by "AI office" dashboards: an **isometric trading floor** where you watch the
+agents work.
+
+- **War room** (home): an animated isometric office with a desk per agent, live status
+  bubbles ("Critic: reviewing 20 factors"), a wall screen with key numbers (Nifty, factors
+  tested today, hit rate), a **"Chief Strategist asks"** panel with approve/hold cards, a
+  **"What your agents just did"** feed, and an **"Ask the Chief Strategist anything"** chat.
+- **Research lab:** type an idea in plain English or Hindi; a Researcher writes the
+  formula, tests it, and shows results in seconds.
+- **Model arena:** LLMs compared head to head.
+- **Stock view:** price chart, past model rankings, reasons (data age depends on mode).
+- **Track record:** hit rate, calibration and returns over time, honestly reported.
+- **Learn:** how markets and factors work, using lagged data, in English and Hindi.
+
+**Design:** light "office" theme like the reference plus a dark mode; phone-first, since
+most Indian investors use phones; ₹ amounts in lakh/crore; IST times.
+**Tech:** FastAPI backend with live updates (WebSockets); Next.js + React + Tailwind
+frontend; isometric scene as SVG with animated overlays. All on free tiers to start.
+**Needs from you:** Node.js (I'll guide), free Vercel account, free backend host.
+
+## Phase 9: Compliance, deploy, present
+
+- Compliance review of Learn mode before going public; decide on the Pro route
+  (registration or partner).
+- Deploy, final report (method, honest results, India vs China), 3-minute demo video.
+
+---
+
+*Research and education only; not investment advice.*

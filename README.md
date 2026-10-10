@@ -18,23 +18,26 @@ EMNLP 2025, [arXiv:2409.06289](https://arxiv.org/abs/2409.06289)), which reports
   untouched until the final test
 - **Realistic trading**: point-in-time index membership, China's price-limit rules,
   and trading costs
-- **A leakage test** (Phase 5): do models that were trained *before* the test years
+- **A leakage test** (Phase 6): do models that were trained *before* the test years
   do as well as models trained *after*?
-- **AI agents and a web app** (Phases 6–7): a team of agents runs the research, and a
-  dashboard shows live predictions with confidence scores and plain-English reasons
+- **Built for India** (Phase 3 on): NSE stocks, Indian trading costs and rules, and a
+  product designed around SEBI's rules for research and investor education
+- **An AI agent team and a web app** (Phases 7–8): agents run the research on a live
+  "trading floor", with rankings, confidence scores and plain-English/Hindi reasons
 
 | Phase | What | Status |
 |---|---|---|
-| 1 | Data, backtest engine, human-designed baselines | **Done** |
+| 1 | China data, backtester, baselines (the paper's market) | **Done** |
 | 2 | LLM factor generation (many providers) and scoring | **Done** |
-| 3 | Feedback loop: LLM agents learn from their results | **Next** |
-| 4 | Prediction model: combined factors, confidence scores, market regimes | |
-| 5 | Honest test on 2021–2026 + leakage experiment | |
-| 6 | Multi-agent system that runs the whole pipeline | |
-| 7 | High-tech web app: live predictions, explanations, agent console | |
-| 8 | Deploy, demo video, final report | |
+| 3 | Indian market data: NSE pipeline, Nifty baselines, Indian costs and rules | **Next** |
+| 4 | Feedback loop: LLM agents learn from their results | |
+| 5 | Prediction model: combined factors, confidence scores, market regimes | |
+| 6 | Honest test on held-out years + leakage experiment | |
+| 7 | AI agent team: the "trading floor" | |
+| 8 | Web app: war room, research lab, track record (English and Hindi) | |
+| 9 | Compliance review, deploy, demo video, final report | |
 
-The full plan, with accuracy targets and what each phase delivers, is in
+The full plan, with accuracy targets, SEBI rules and what each phase delivers, is in
 **[ROADMAP.md](ROADMAP.md)**.
 
 ---
@@ -117,7 +120,7 @@ Test period 2 Jan 2017 to 9 Oct 2026 (the last year is year-to-date). \*Paper wi
    costs, not just predict.**
 3. **The paper's test year was a losing year for everyone.** Over Jan 2023 to Jan
    2024 the CSI300 fell about 17% and every baseline lost money, which makes a +53%
-   result a red flag worth testing (Phase 5).
+   result a red flag worth testing (Phase 6).
 4. **Classic single factors don't beat the index** long-only after costs.
 
 **Checks:** index returns match the index's published levels; the backtester
@@ -233,7 +236,7 @@ from a later download differ slightly in the latest year.
 ## Project layout
 
 ```
-ROADMAP.md               the plan for Phases 3-8
+ROADMAP.md               the plan for Phases 3-9
 run_phase1.py            data -> features -> baselines -> chart -> README table
 run_phase2.py            tests -> LLM factors -> scoring -> charts -> README tables
 src/
@@ -274,6 +277,10 @@ They need no data and no API keys, and run automatically on GitHub for every pus
 ## Authors
 
 Chaitya Nanavati, with Claude (Anthropic) as AI collaborator.
+
+## Disclaimer
+
+Research and education only; not investment advice.
 
 ## License
 
