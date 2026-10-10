@@ -14,8 +14,8 @@ benchmark; India is the product market.
 |---|---|---|
 | 1 | China data, backtester, baselines (paper's market) | **Done** |
 | 2 | LLMs write factors: 4 models, 191 factors, scored | **Done** |
-| 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Next** |
-| 4 | Feedback loop: LLM agents learn from their results each round | |
+| 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Built, run on your Mac** |
+| 4 | Feedback loop: LLM agents learn from their results each round | next |
 | 5 | Prediction model: combined factors, confidence scores, market regimes | |
 | 6 | Honest test on held-out years + leakage experiment | |
 | 7 | AI agent team: the "trading floor" | |
@@ -73,7 +73,7 @@ and **feed mistakes back** to the LLMs.
 
 ---
 
-## Phase 3: Indian market data (next)
+## Phase 3: Indian market data (built)
 
 - **Prices:** NSE's official daily bhavcopy archive (every listed stock, including
   ones later delisted, so no survivorship bias), with Yahoo Finance (`.NS` tickers) as

@@ -2,8 +2,8 @@
 
 Test period 2017-01-01 -> latest. 2014-2016 is warm-up / first training data.
 
-  1. CSI300 index (buy & hold)
-  2. Equal-weight CSI300 (gross, reference only)
+  1. Benchmark index (buy & hold): CSI300 for China, Nifty 200 for India
+  2. Equal-weight universe (gross, reference only)
   3. Classic single factors via Top-50/Dropout-5: 5d reversal, 60d momentum,
      low volatility, price-volume correlation
   4. Alpha158 + LightGBM, walk-forward: retrained every year on all prior
@@ -26,8 +26,11 @@ from backtest import topk_dropout
 from data import load_market
 from metrics import backtest_summary, ic_series, ic_summary, perf, yearly
 
+import markets
+
 ROOT = Path(__file__).resolve().parents[1]
-RES = ROOT / "results"
+CFG = markets.from_argv()
+RES = CFG.results
 TEST_START, PAPER = "2017-01-01", ("2023-01-01", "2024-01-31")
 GAP = 3  # trading days dropped at train/valid/test boundaries (label spans t+1..t+2)
 
@@ -50,12 +53,16 @@ def lgb_walk_forward(X: pd.DataFrame, y: pd.Series, dates: pd.DatetimeIndex) -> 
     preds, log = [], {}
     for year in range(pd.Timestamp(TEST_START).year, dates[-1].year + 1):
         t0 = pd.Timestamp(f"{year}-01-01")
+        if dates[0] > pd.Timestamp(f"{year - 2}-03-01"):
+            continue  # not enough history before this year to train and validate
         v0 = pd.Timestamp(f"{year - 1}-01-01")
         tdays = dates[dates < v0]
         vdays = dates[(dates >= v0) & (dates < t0)]
         tr = (d >= "2014-04-01") & (d <= tdays[-1 - GAP]) & yr.notna().values
         va = (d >= vdays[0]) & (d <= vdays[-1 - GAP]) & yr.notna().values
         te = (d >= t0) & (d < pd.Timestamp(f"{year + 1}-01-01"))
+        if tr.sum() < 20000 or va.sum() < 5000 or te.sum() == 0:
+            continue
         t = time.time()
         model = lgb.train(
             LGB_PARAMS, lgb.Dataset(Xr[tr], yr[tr]), num_boost_round=1000,
@@ -71,9 +78,9 @@ def lgb_walk_forward(X: pd.DataFrame, y: pd.Series, dates: pd.DatetimeIndex) -> 
 
 
 def main() -> None:
-    RES.mkdir(exist_ok=True)
+    RES.mkdir(parents=True, exist_ok=True)
     m = load_market()
-    X = pd.read_parquet(ROOT / "data" / "processed" / "alpha158.parquet")
+    X = pd.read_parquet(CFG.proc / "alpha158.parquet")
     fwd_long = m.fwd_ret.stack().rename("fwd")
     y = fwd_long.reindex(X.index)
 
@@ -110,7 +117,8 @@ def main() -> None:
 
     bench = bt["bench"]
     ew = m.fwd_ret.where(m.member).mean(axis=1).loc[bench.index]
-    for name, r in [("CSI300 index (buy & hold)", bench), ("Equal-weight CSI300 (gross)", ew)]:
+    for name, r in [(f"{m.bench_label} index (buy & hold)", bench),
+                    (f"Equal-weight {m.universe_label} (gross)", ew)]:
         p = perf(r)
         pw = r.loc[PAPER[0]:PAPER[1]]
         rows.append({"strategy": name, "net_ann_return": p["ann_return"], "net_sharpe": p["sharpe"],

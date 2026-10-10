@@ -11,8 +11,11 @@ import pandas as pd
 
 from style import BLUE, INK, INK2, MUTED, NOVEL_ZONE, SURFACE, new_figure, save, tidy, titles
 
+import markets
+
 ROOT = Path(__file__).resolve().parents[1]
-RES = ROOT / "results"
+CFG = markets.from_argv()
+RES = CFG.results
 MAX_LABELS = 4  # the README shortlist table lists every shortlisted factor
 
 
@@ -67,7 +70,7 @@ def strength_vs_novelty() -> None:
     titles(ax, title, f"{len(s)} LLM-written factors from {summ.get('models', 1)} model(s), scored on "
                       f"{p[0][:4]}–{p[1][:4]} only (2021 onward held out); top {MAX_LABELS} labelled")
     ax.legend(loc="upper right", bbox_to_anchor=(1.0, 0.93), frameon=False, fontsize=9, labelcolor=INK)
-    save(fig, "phase2_strength_vs_novelty.png")
+    save(fig, f"{CFG.fig_prefix}phase2_strength_vs_novelty.png")
 
 
 def model_comparison() -> None:
@@ -104,7 +107,7 @@ def model_comparison() -> None:
              else f"Factor quality for {best.model}; add more models to compare")
     fig.suptitle(title, x=0.01, y=0.985, ha="left", fontsize=13, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
-    save(fig, "phase2_models.png", tight=False)
+    save(fig, f"{CFG.fig_prefix}phase2_models.png", tight=False)
 
 
 if __name__ == "__main__":

@@ -21,3 +21,5 @@ jobs:
         run: python tests/test_dsl.py
       - name: LLM client tests
         run: python tests/test_llm.py
+      - name: India pipeline tests
+        run: python tests/test_india.py

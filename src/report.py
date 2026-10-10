@@ -20,9 +20,12 @@ from pathlib import Path
 
 import pandas as pd
 
+import markets
+
 ROOT = Path(__file__).resolve().parents[1]
 RES = ROOT / "results"
 README = ROOT / "README.md"
+INDIA = markets.get("india")
 
 
 def day(x) -> str:
@@ -38,11 +41,20 @@ def pct(x, signed=False) -> str:
 
 
 def num(x, fmt="{:.3f}") -> str:
-    return "" if pd.isna(x) else fmt.format(x).replace("-", "−")
+    if pd.isna(x):
+        return ""
+    out = fmt.format(x)
+    try:
+        if float(out.rstrip("%")) == 0:
+            out = out.lstrip("+-")  # no "-0.000"
+    except ValueError:
+        pass
+    return out.replace("-", "−")
 
 
-def phase1_table() -> str | None:
-    f = RES / "baseline_summary.csv"
+def phase1_table(res: Path = RES, proc: Path = ROOT / "data" / "processed",
+                 india: bool = False) -> str | None:
+    f = res / "baseline_summary.csv"
     if not f.exists():
         return None
     s = pd.read_csv(f, index_col=0)
@@ -56,16 +68,17 @@ def phase1_table() -> str | None:
                     f"{pct(r.get('excess_ann_return'), True)} | {num(r.get('info_ratio'), '{:.2f}')} | "
                     f"{pct(r.get('net_max_dd'))} | {pct(r.get('ann_cost_drag'))} | "
                     f"{pct(r.get('paper_window_net_return'), True)} |")
-    q = json.loads((ROOT / "data" / "processed" / "data_quality.json").read_text()) \
-        if (ROOT / "data" / "processed" / "data_quality.json").exists() else {}
+    q = json.loads((proc / "data_quality.json").read_text()) \
+        if (proc / "data_quality.json").exists() else {}
     end = day(q["end"]) if q.get("end") else "the latest data"
     note = (f"\n\nTest period 2 Jan 2017 to {end} (the last year is year-to-date). "
-            "\\*Paper window = 1 Jan 2023 to 31 Jan 2024, where the paper reports +53.17%.")
+            + ("\\*Paper window = 1 Jan 2023 to 31 Jan 2024, the paper's China test period, shown for comparison."
+               if india else "\\*Paper window = 1 Jan 2023 to 31 Jan 2024, where the paper reports +53.17%."))
     return "\n".join(rows) + note
 
 
-def phase2_summary() -> str | None:
-    f = RES / "phase2_summary.json"
+def phase2_summary(res: Path = RES) -> str | None:
+    f = res / "phase2_summary.json"
     if not f.exists():
         return None
     s = json.loads(f.read_text())
@@ -81,15 +94,15 @@ def phase2_summary() -> str | None:
             f"{ref['median_abs_rank_ic']:.3f}")
 
 
-def phase2_shortlist() -> str | None:
-    f = RES / "phase2_factor_scores.csv"
+def phase2_shortlist(res: Path = RES, limit: int = 15) -> str | None:
+    f = res / "phase2_factor_scores.csv"
     if not f.exists():
         return None
     s = pd.read_csv(f)
     s = s[s["shortlist"] == True]  # noqa: E712
     if s.empty:
         return "_No factor is on the shortlist yet._"
-    s = s.reindex(s["rank_ic"].abs().sort_values(ascending=False).index).head(15)
+    s = s.reindex(s["rank_ic"].abs().sort_values(ascending=False).index).head(limit)
     rows = ["| Factor | From | Expression | Rank IC | t | Day-to-day stability | Top-fifth excess / yr | "
             "Closest baseline feature |", "|---|---|---|---|---|---|---|---|"]
     for _, r in s.iterrows():
@@ -100,8 +113,8 @@ def phase2_shortlist() -> str | None:
     return "\n".join(rows)
 
 
-def phase2_models() -> str | None:
-    f = RES / "phase2_model_summary.csv"
+def phase2_models(res: Path = RES) -> str | None:
+    f = res / "phase2_model_summary.csv"
     if not f.exists():
         return None
     m = pd.read_csv(f).sort_values("shortlist", ascending=False)
@@ -114,8 +127,45 @@ def phase2_models() -> str | None:
     return "\n".join(rows)
 
 
+def india_data() -> str | None:
+    f = INDIA.proc / "data_quality.json"
+    if not f.exists():
+        return None
+    q = json.loads(f.read_text())
+    lo, med, hi = q["members_per_day_min_median_max"]
+    return (f"- NSE data **{day(q['start'])} to {day(q['end'])}**: {q['trading_days']:,} trading days; "
+            f"universe from {day(q['first_universe_day'])}\n"
+            f"- **{q['unique_stocks_ever_in_universe']}** different stocks passed through the top-200 universe "
+            f"(median {med} members a day)\n"
+            f"- **{q['corporate_action_adjustments']}** split/bonus/rights adjustments detected from NSE's previous-close field\n"
+            f"- Benchmark: **{q['benchmark']}**, {q['benchmark_first_last'][0]:,.0f} → {q['benchmark_first_last'][1]:,.0f}\n"
+            f"- Locked-circuit days among members: {q['member_days_locked_up_pct']}% up, "
+            f"{q['member_days_locked_down_pct']}% down")
+
+
+def india_transfer() -> str | None:
+    f = INDIA.results / "transfer.json"
+    if not f.exists():
+        return None
+    t = json.loads(f.read_text())
+    rows = [f"- **{t['factors_compared']}** LLM factors scored in both markets on 2014–2020; correlation of "
+            f"their scores across markets **{t['ic_correlation']:+.2f}** (rank correlation {t['ic_rank_correlation']:+.2f})",
+            f"- Strong in China (|t| ≥ 3): **{t['strong_in_china']}**; of these, same direction in India: "
+            f"**{t['strong_in_china_same_sign_in_india']}**, strong in India too: **{t['strong_in_china_also_strong_in_india']}**",
+            f"- Strong in India: **{t['strong_in_india']}**; strong in both, same direction: **{t['strong_in_both']}**",
+            "", "| Factor | Rank IC China | Rank IC India |", "|---|---|---|"]
+    for r in t["top_travellers"]:
+        rows.append(f"| `{r['name']}` | {num(r['rank_ic_china'], '{:+.3f}')} | {num(r['rank_ic_india'], '{:+.3f}')} |")
+    return "\n".join(rows)
+
+
 BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
-          "phase2_shortlist": phase2_shortlist, "phase2_models": phase2_models}
+          "phase2_shortlist": phase2_shortlist, "phase2_models": phase2_models,
+          "india_data": india_data,
+          "india_phase1_table": lambda: phase1_table(INDIA.results, INDIA.proc, india=True),
+          "india_phase2_summary": lambda: phase2_summary(INDIA.results),
+          "india_phase2_shortlist": lambda: phase2_shortlist(INDIA.results, limit=10),
+          "india_transfer": india_transfer}
 
 
 def main() -> None:
@@ -123,7 +173,6 @@ def main() -> None:
     for key, fn in BLOCKS.items():
         pat = re.compile(rf"(<!-- AUTO:{key} -->\n).*?(\n<!-- /AUTO:{key} -->)", re.S)
         if not pat.search(text):
-            print(f"    README has no AUTO:{key} block, skipping")
             continue
         body = fn()
         if body is None:

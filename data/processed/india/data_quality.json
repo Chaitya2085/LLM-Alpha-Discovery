@@ -1,0 +1,25 @@
+{
+  "market": "india",
+  "source": "NSE bhavcopy (EQ series)",
+  "start": "2014-01-01",
+  "end": "2026-10-09",
+  "first_universe_day": "2014-04-01",
+  "trading_days": 3149,
+  "unique_stocks_ever_in_universe": 674,
+  "members_per_day_min_median_max": [
+    194,
+    200,
+    200
+  ],
+  "corporate_action_adjustments": 5236,
+  "member_days_missing_close_pct": 0.342,
+  "member_days_locked_up_pct": 0.027,
+  "member_days_locked_down_pct": 0.039,
+  "member_days_abs_return_gt_25pct": 268,
+  "benchmark": "Nifty 200",
+  "benchmark_first_last": [
+    3162.9,
+    13062.85
+  ],
+  "seconds": 39
+}

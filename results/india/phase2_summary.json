@@ -1,0 +1,24 @@
+{
+  "discovery_period": [
+    "2014-07-01",
+    "2020-12-28"
+  ],
+  "market": "india",
+  "factors_in_library": 251,
+  "models": 4,
+  "seed_included": true,
+  "valid": 245,
+  "scored": 245,
+  "strong": 77,
+  "novel": 142,
+  "slow": 183,
+  "shortlist": 25,
+  "best_alpha158_single_feature_rank_ic": {
+    "feature": "KLEN",
+    "rank_ic": -0.0445,
+    "t": -11.07,
+    "median_abs_rank_ic": 0.0147,
+    "top10_abs": 0.0367
+  },
+  "seconds": 103
+}

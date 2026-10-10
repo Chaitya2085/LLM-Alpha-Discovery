@@ -37,8 +37,11 @@ from dsl import Evaluator, FactorError
 from generate_factors import load_library
 from metrics import ic_series
 
+import markets
+
 ROOT = Path(__file__).resolve().parents[1]
-RES = ROOT / "results"
+CFG = markets.from_argv()
+RES = CFG.results
 DISC_START, DISC_END = "2014-07-01", "2020-12-31"
 N_SAMPLE_DATES = 80
 
@@ -81,7 +84,7 @@ def main() -> None:
     sample = dates[np.linspace(0, len(dates) - 1, N_SAMPLE_DATES).astype(int)]
 
     # Alpha158 ranks on the sample dates (for the novelty check)
-    X = pd.read_parquet(ROOT / "data" / "processed" / "alpha158.parquet")
+    X = pd.read_parquet(CFG.proc / "alpha158.parquet")
     X = X[X.index.get_level_values("date").isin(sample)]
     a158 = {}
     for col in X.columns:
@@ -168,7 +171,7 @@ def main() -> None:
     sc["shortlist"] = sc[["flag_strong", "flag_novel", "flag_unique"]].all(axis=1)
 
     out = pd.concat([sc, df[df["status"] != "scored"]], ignore_index=True)
-    RES.mkdir(exist_ok=True)
+    RES.mkdir(parents=True, exist_ok=True)
     out.drop(columns=["abs_ic"]).to_csv(RES / "phase2_factor_scores.csv", index=False)
 
     # ---- per-model comparison ----
@@ -194,7 +197,7 @@ def main() -> None:
 
     summary = {
         "discovery_period": [str(dates[0].date()), str(dates[-1].date())],
-        "factors_in_library": len(full_lib), "models": len(models), "seed_included": not args.no_seed,
+        "market": CFG.name, "factors_in_library": len(full_lib), "models": len(models), "seed_included": not args.no_seed,
         "valid": len(lib), "scored": int(len(sc)),
         "strong": int(sc["flag_strong"].sum()), "novel": int(sc["flag_novel"].sum()),
         "slow": int(sc["flag_slow"].sum()), "shortlist": int(sc["shortlist"].sum()),
@@ -210,7 +213,7 @@ def main() -> None:
 
 def _best_alpha158(m, dates, member, fwd) -> dict:
     """Rank IC of each Alpha158 feature on the same discovery days (reference point)."""
-    X = pd.read_parquet(ROOT / "data" / "processed" / "alpha158.parquet")
+    X = pd.read_parquet(CFG.proc / "alpha158.parquet")
     d = X.index.get_level_values("date")
     X = X[(d >= dates[0]) & (d <= dates[-1])]
     out = {}

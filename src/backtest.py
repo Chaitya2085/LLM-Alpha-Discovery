@@ -8,8 +8,8 @@ Realism:
   - only CSI300 members on day t are eligible to buy
   - no buying a stock that opens limit-up or is suspended; no selling one that
     opens limit-down or is suspended (it stays in the book)
-  - costs: 0.05% on buys, 0.15% on sells (Qlib's default China A-share rates,
-    covering commission + stamp duty)
+  - costs come from the market settings (src/markets.py): China 0.05% buy / 0.15% sell
+    (Qlib defaults); India 0.12% buy / 0.13% sell (STT, stamp duty, exchange fees, DP)
 """
 from __future__ import annotations
 
@@ -69,7 +69,8 @@ def topk_dropout(score: pd.DataFrame, mkt: Market, topk: int = 50, n_drop: int =
         n = max(len(new_held), 1)
         turnover_buy = len(buy) / n
         turnover_sell = len(sell) / max(len(last), 1) if last else 0.0
-        cost = turnover_buy * BUY_COST + turnover_sell * SELL_COST
+        cost = (turnover_buy * getattr(mkt, "buy_cost", BUY_COST)
+                + turnover_sell * getattr(mkt, "sell_cost", SELL_COST))
 
         r = mkt.fwd_ret.loc[d].reindex(new_held).fillna(0.0)  # suspended-through = flat
         gross = float(r.mean()) if new_held else 0.0

@@ -1,4 +1,4 @@
-"""Phase 1 figure: growth of 1 unit, CSI300 vs the LightGBM model before and after
+"""Phase 1 / India figure: growth of 1 unit, benchmark vs the LightGBM model before and after
 trading costs (Top-50 / Dropout-5). Title is computed from the results.
 
 Output: figures/phase1_growth.png
@@ -12,19 +12,22 @@ from data import load_market
 from metrics import perf
 from style import AQUA, BLUE, INK, INK2, ORANGE, new_figure, save, tidy, titles
 
+import markets
+
 ROOT = Path(__file__).resolve().parents[1]
+CFG = markets.from_argv()
 
 
 def main() -> None:
     m = load_market()
-    s = pd.read_parquet(ROOT / "results" / "lgb_alpha158_scores.parquet")["score"] \
+    s = pd.read_parquet(CFG.results / "lgb_alpha158_scores.parquet")["score"] \
         .unstack("code").reindex(index=m.dates, columns=m.member.columns)
     d = topk_dropout(s, m, topk=50, n_drop=5, start="2017-01-01").daily
     g, n, b = (perf(d[c])["ann_return"] for c in ("gross", "net", "bench"))
     series = [
         ("Model, before costs", (1 + d["gross"]).cumprod(), BLUE),
         ("Model, after costs", (1 + d["net"]).cumprod(), ORANGE),
-        ("CSI300 index", (1 + d["bench"]).cumprod(), AQUA),
+        (f"{m.bench_label} index", (1 + d["bench"]).cumprod(), AQUA),
     ]
 
     fig, ax = new_figure(10, 5.4)
@@ -45,14 +48,15 @@ def main() -> None:
     tidy(ax)
     ax.set_ylabel(f"Growth of 1 (start {d.index[0]:%b %Y})", color=INK2, fontsize=9)
     titles(ax, f"Before costs the model earns {g:.1%} a year; after costs {n:.1%}, vs {b:.1%} for the index",
-           "Alpha158 + LightGBM, CSI300 stocks, top 50 held, 5 swapped daily, 0.05% buy / 0.15% sell costs, "
+           f"Alpha158 + LightGBM, {m.universe_label} stocks, top 50 held, 5 swapped daily, "
+           f"{m.buy_cost:.2%} buy / {m.sell_cost:.2%} sell costs, "
            f"{d.index[0]:%b %Y} to {d.index[-1]:%b %Y}")
     ax.legend(loc="upper left", frameon=False, fontsize=9, labelcolor=INK)
     ax.set_xlim(d.index[0], d.index[-1] + pd.Timedelta(days=720))
     years = range(d.index[0].year + 1, d.index[-1].year + 1)
     ax.set_xticks([pd.Timestamp(f"{y}-01-01") for y in years])
     ax.set_xticklabels([str(y) for y in years])
-    save(fig, "phase1_growth.png")
+    save(fig, f"{CFG.fig_prefix}phase1_growth.png")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,37 @@
+{
+  "factors_compared": 245,
+  "ic_correlation": 0.675,
+  "ic_rank_correlation": 0.665,
+  "strong_in_china": 131,
+  "strong_in_china_same_sign_in_india": 110,
+  "strong_in_china_also_strong_in_india": 76,
+  "strong_in_india": 126,
+  "strong_in_both": 76,
+  "top_travellers": [
+    {
+      "name": "vol_adi_imbalance",
+      "rank_ic_china": -0.0349,
+      "rank_ic_india": -0.0257
+    },
+    {
+      "name": "rev_sign_range",
+      "rank_ic_china": 0.0327,
+      "rank_ic_india": 0.0346
+    },
+    {
+      "name": "rev_short_term_overshoot",
+      "rank_ic_china": 0.0261,
+      "rank_ic_india": 0.0217
+    },
+    {
+      "name": "cross_sectional_shock_reversal",
+      "rank_ic_china": 0.038,
+      "rank_ic_india": 0.0371
+    },
+    {
+      "name": "normalized_short_term_return_reversal",
+      "rank_ic_china": 0.0348,
+      "rank_ic_india": 0.0254
+    }
+  ]
+}
