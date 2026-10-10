@@ -223,10 +223,16 @@ daily files, downloaded on your computer by `python run_india.py`.
 - **Data:** NSE's daily equity bhavcopy (every listed stock, including later-delisted
   ones) and NSE's daily index closes. Both of NSE's file formats are handled (it changed
   format on 8 July 2024).
-- **Splits and bonuses:** on an ex-date NSE adjusts the stock's "previous close", so the
-  adjustment is measured from the data itself; no separate corporate-actions feed is
-  needed. Closes from the trade-to-trade (BE) series are used for continuity, so a stock
-  moving between series isn't mistaken for a split.
+- **Companies only:** ETFs and fund units also trade in NSE's EQ series; they're dropped
+  by ISIN (company ISINs start with INE).
+- **Splits and bonuses:** NSE's daily file has no corporate-action column and doesn't
+  adjust the previous close, so they're found in the data. A **split** gets a new ISIN in
+  India, so an ISIN change plus a price jump to a standard ratio (1:2, 1:5, 1:10, ...)
+  is a split. A **bonus** keeps its ISIN: it's recognised when the price falls to almost
+  exactly a standard ratio while rupee trading stays normal (a real crash comes with a
+  burst of trading, so it's left alone). Only data up to the ex-date is used, and every
+  adjustment is listed in `corporate_actions.csv` (check with `python src/india_diagnose.py`).
+  Dividends aren't adjusted, matching the Nifty price indices.
 - **Universe:** each month, the 200 most-traded EQ stocks over the previous three months
   (point-in-time, no survivorship bias). **Benchmark:** Nifty 200.
 - **Indian trading:** 0.12% to buy and 0.13% to sell (STT, stamp duty, exchange fees,
@@ -234,22 +240,23 @@ daily files, downloaded on your computer by `python run_india.py`.
 
 <!-- AUTO:india_data -->
 - NSE data **1 Jan 2014 to 9 Oct 2026**: 3,149 trading days; universe from 1 Apr 2014
-- **674** different stocks passed through the top-200 universe (median 200 members a day)
-- **5236** split/bonus/rights adjustments detected from NSE's previous-close field
+- **664** different stocks passed through the top-200 universe (median 200 members a day)
+- Corporate actions adjusted: **35** splits (ISIN changed) and **173** bonuses, found in the price data
+- One-day moves over 25% left among top-200 stocks: 136
 - Benchmark: **Nifty 200**, 3,163 → 13,063
-- Locked-circuit days among members: 0.027% up, 0.039% down
+- Locked-circuit days among members: 0.028% up, 0.039% down
 <!-- /AUTO:india_data -->
 
 <!-- AUTO:india_phase1_table -->
 | Strategy | Rank IC | ICIR | Gross / yr | Net / yr | Excess vs index / yr | Info ratio | Max drawdown | Costs / yr | Paper window* |
 |---|---|---|---|---|---|---|---|---|---|
-| Reversal 5d | 0.019 | 0.13 | 6.0% | 4.7% | −6.3% | −0.52 | −64.5% | 1.3% | +28.3% |
-| Momentum 60d | 0.000 | 0.00 | 10.2% | 9.2% | −2.6% | −0.24 | −48.4% | 0.9% | +31.0% |
-| Low volatility 20d | 0.019 | 0.11 | 11.3% | 6.9% | −5.1% | −0.72 | −41.1% | 4.0% | +25.4% |
-| Price-volume corr 20d (neg) | 0.017 | 0.15 | 8.8% | 7.2% | −4.4% | −0.51 | −50.6% | 1.5% | +23.1% |
-| **Alpha158 + LightGBM** | 0.056 | 0.45 | 14.0% | 10.0% | −1.9% | −0.26 | −48.2% | 3.6% | +24.0% |
+| Reversal 5d | 0.020 | 0.14 | 6.6% | 5.2% | −5.9% | −0.48 | −63.4% | 1.3% | +26.0% |
+| Momentum 60d | 0.000 | 0.00 | 14.8% | 13.8% | +1.4% | 0.21 | −48.5% | 0.9% | +32.4% |
+| Low volatility 20d | 0.019 | 0.11 | 13.6% | 10.0% | −2.3% | −0.33 | −38.4% | 3.2% | +28.5% |
+| Price-volume corr 20d (neg) | 0.018 | 0.16 | 10.7% | 9.0% | −2.7% | −0.31 | −49.5% | 1.5% | +22.0% |
+| **Alpha158 + LightGBM** | 0.058 | 0.46 | 14.6% | 11.7% | −0.4% | −0.05 | −46.4% | 2.6% | +26.0% |
 | Nifty 200 index (buy & hold) |  |  |  | 12.0% | +0.0% |  | −37.9% |  | +25.1% |
-| Equal-weight top-200 NSE (gross) |  |  |  | 10.2% | −1.2% |  | −55.3% |  | +46.5% |
+| Equal-weight top-200 NSE (gross) |  |  |  | 13.6% | +1.9% |  | −53.9% |  | +51.4% |
 
 Test period 2 Jan 2017 to 9 Oct 2026 (the last year is year-to-date). \*Paper window = 1 Jan 2023 to 31 Jan 2024, the paper's China test period, shown for comparison.
 <!-- /AUTO:india_phase1_table -->
@@ -260,17 +267,17 @@ data exactly as it was on China's.
 ![China vs India](figures/india_transfer.png)
 
 <!-- AUTO:india_transfer -->
-- **245** LLM factors scored in both markets on 2014–2020; correlation of their scores across markets **+0.68** (rank correlation +0.67)
-- Strong in China (|t| ≥ 3): **131**; of these, same direction in India: **110**, strong in India too: **76**
-- Strong in India: **126**; strong in both, same direction: **76**
+- **245** LLM factors scored in both markets on 2014–2020; correlation of their scores across markets **+0.69** (rank correlation +0.68)
+- Strong in China (|t| ≥ 3): **131**; of these, same direction in India: **112**, strong in India too: **77**
+- Strong in India: **124**; strong in both, same direction: **77**
 
 | Factor | Rank IC China | Rank IC India |
 |---|---|---|
 | `vol_adi_imbalance` | −0.035 | −0.026 |
 | `rev_sign_range` | +0.033 | +0.035 |
-| `rev_short_term_overshoot` | +0.026 | +0.022 |
-| `cross_sectional_shock_reversal` | +0.038 | +0.037 |
-| `normalized_short_term_return_reversal` | +0.035 | +0.025 |
+| `rev_short_term` | +0.042 | +0.029 |
+| `avg_sign_delta5_rev` | +0.032 | +0.021 |
+| `rev_short_term_overshoot` | +0.026 | +0.023 |
 <!-- /AUTO:india_transfer -->
 
 ![India strength vs novelty](figures/india_phase2_strength_vs_novelty.png)
@@ -278,28 +285,30 @@ data exactly as it was on China's.
 <!-- AUTO:india_phase2_summary -->
 - Discovery period: **1 Jul 2014 to 28 Dec 2020** (2021 onward is held out)
 - Factors proposed: **251** from **4** model(s); valid and scored: **245**
-- Strong: **77** · novel: **142** · shortlisted: **25**
-- Reference: best single Alpha158 feature is KLEN (rank IC -0.044, t -11.1); median feature |rank IC| 0.015
+- Strong: **77** · novel: **141** · shortlisted: **24**
+- Reference: best single Alpha158 feature is KLEN (rank IC -0.045, t -11.5); median feature |rank IC| 0.015
 <!-- /AUTO:india_phase2_summary -->
 
 <!-- AUTO:india_phase2_shortlist -->
 | Factor | From | Expression | Rank IC | t | Day-to-day stability | Top-fifth excess / yr | Closest baseline feature |
 |---|---|---|---|---|---|---|---|
-| `low_parkinson_vol` | seed: claude (chat) | `-Mean(Log(high / low), 20)` | +0.037 | +7.3 | 0.99 | +3.6% | 0.66 (STD20) |
-| `rev_sign_range` | openrouter: nvidia/nemotron-3-ultra-550b-a55b:free | `-Sign(returns) * (close - TsMin(low, 10)) / (TsMax(high, 10) - TsMin(low, 10))` | +0.035 | +14.2 | −0.02 | +10.6% | 0.59 (OPEN0) |
-| `vol_surge` (flipped) | openrouter: nvidia/nemotron-3-ultra-550b-a55b:free | `volume / Mean(volume, 20) * CsRank(volume)` | −0.030 | −8.9 | 0.69 | +13.2% | 0.70 (VMA20) |
-| `gap_volatility` | seed: claude (chat) | `-Std(open / Ref(close, 1) - 1, 20)` | +0.029 | +7.5 | 0.96 | +6.8% | 0.47 (STD20) |
-| `lottery_avoidance` | seed: claude (chat) | `-TsMax(returns, 20)` | +0.028 | +7.5 | 0.95 | +6.2% | 0.56 (MIN20) |
-| `volume_weighted_volatility_ratio` | gemini: gemini-3.8-flash | `-Std(returns * volume / Mean(volume, 20), 30)` | +0.027 | +7.7 | 0.97 | +5.2% | 0.69 (WVMA30) |
-| `low_beta` | seed: claude (chat) | `-Corr(returns, returns - CsDemean(returns), 60) * Std(returns, 60)` | +0.026 | +4.3 | 0.99 | +2.2% | 0.47 (STD60) |
-| `rev_delta_volume_cross` (flipped) | groq: openai/gpt-oss-120b | `Delta(close, 1) * (1 - CsRank(volume))` | −0.024 | −9.3 | −0.01 | +9.5% | 0.68 (KMID2) |
-| `amihud_illiquidity` (flipped) | seed: claude (chat) | `CsRank(Mean(Abs(returns) / (volume * vwap), 20))` | −0.023 | −7.2 | 1.00 | −4.3% | 0.28 (KLEN) |
-| `rev_short_term_overshoot` | groq: openai/gpt-oss-120b | `-Mean(Sign(Delta(close, 1)) * Abs(Delta(close, 1) - Mean(Delta(close, 1), 3)), 5)` | +0.022 | +9.1 | 0.47 | +10.7% | 0.58 (SUMD5) |
+| `low_parkinson_vol` | seed: claude (chat) | `-Mean(Log(high / low), 20)` | +0.038 | +7.6 | 0.99 | +6.7% | 0.67 (STD20) |
+| `rev_sign_range` | openrouter: nvidia/nemotron-3-ultra-550b-a55b:free | `-Sign(returns) * (close - TsMin(low, 10)) / (TsMax(high, 10) - TsMin(low, 10))` | +0.035 | +14.2 | −0.02 | +8.7% | 0.58 (OPEN0) |
+| `stable_volatility` | seed: claude (chat) | `-Std(Std(returns, 10), 40)` | +0.031 | +8.6 | 0.99 | +7.0% | 0.54 (STD60) |
+| `gap_volatility` | seed: claude (chat) | `-Std(open / Ref(close, 1) - 1, 20)` | +0.029 | +7.5 | 0.96 | +7.8% | 0.46 (STD20) |
+| `lottery_avoidance` | seed: claude (chat) | `-TsMax(returns, 20)` | +0.029 | +7.9 | 0.95 | +7.2% | 0.56 (MIN20) |
+| `volume_weighted_volatility_ratio` | gemini: gemini-3.8-flash | `-Std(returns * volume / Mean(volume, 20), 30)` | +0.028 | +8.0 | 0.97 | +7.7% | 0.70 (WVMA30) |
+| `low_beta` | seed: claude (chat) | `-Corr(returns, returns - CsDemean(returns), 60) * Std(returns, 60)` | +0.027 | +4.5 | 0.99 | +4.8% | 0.48 (STD60) |
+| `rev_delta_volume_cross` (flipped) | groq: openai/gpt-oss-120b | `Delta(close, 1) * (1 - CsRank(volume))` | −0.025 | −9.9 | −0.01 | +7.6% | 0.68 (KMID2) |
+| `amihud_illiquidity` (flipped) | seed: claude (chat) | `CsRank(Mean(Abs(returns) / (volume * vwap), 20))` | −0.023 | −7.3 | 1.00 | −0.8% | 0.27 (KLEN) |
+| `rev_short_term_overshoot` | groq: openai/gpt-oss-120b | `-Mean(Sign(Delta(close, 1)) * Abs(Delta(close, 1) - Mean(Delta(close, 1), 3)), 5)` | +0.023 | +9.6 | 0.47 | +10.6% | 0.58 (SUMP5) |
 <!-- /AUTO:india_phase2_shortlist -->
 
-**Checks:** 5 India tests on a synthetic NSE archive (both file formats, splits,
-holidays, listings and delistings, locked circuits, blocked downloads, resume). The
-whole India pipeline was also run on 11 years of synthetic **random-walk** prices: every
+**Checks:** 6 India tests on a synthetic NSE archive (both file formats, splits and
+bonuses told apart from a genuine crash, ETFs, weekend special sessions, holidays,
+listings and delistings, locked circuits, blocked downloads, NSE "busy" errors, resume).
+`python src/india_diagnose.py` lists every adjustment and the biggest remaining moves on
+the real data. The whole India pipeline was also run on 11 years of synthetic **random-walk** prices: every
 factor and the LightGBM model showed no edge (largest |t| 1.3, rank IC ≈ 0), which is
 the right answer and shows nothing in the pipeline peeks at the future.
 
@@ -327,6 +336,9 @@ registration (see [ROADMAP.md](ROADMAP.md)).*
 
 **India:** NSE's official daily bhavcopy and index-close files, downloaded by
 `src/india_download.py` (resumable; about 6,000 small files from 2014). Not committed to git.
+If NSE is busy (HTTP 503/429) the downloader waits and retries; days it still can't get are
+listed in `data/raw/india/failed_days.json`, and running `python run_india.py` again fetches
+only those.
 
 **China:** daily A-share data in Qlib format from the community-maintained
 [chenditc/investment_data](https://github.com/chenditc/investment_data).

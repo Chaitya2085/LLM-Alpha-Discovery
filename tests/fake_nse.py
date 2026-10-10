@@ -53,21 +53,39 @@ def make_archive(root: Path, start: date, end: date, n_stocks: int = 60, seed: i
         listed[a:b, j] = True
     true_ret = rng.normal(0.0003, vol, (T, n_stocks))
     true_ret[0] = 0
-    true_px = 200 * np.exp(rng.normal(0, 0.8, n_stocks)) * np.cumprod(1 + true_ret, axis=0)
-    # corporate actions: some stocks split 1:2 or 1:5 (or 1:1 bonus) on a random day
+    # corporate actions, as NSE really does them: a face-value split gets a NEW ISIN; a bonus
+    # keeps the ISIN. NSE does NOT adjust the "previous close" field on the ex-date.
     split_ratio = np.ones((T, n_stocks))
-    actions = []
-    for j in rng.choice(n_stocks, size=max(2, n_stocks // 6), replace=False):
+    isin_ver = np.zeros((T, n_stocks), int)
+    actions = []   # (symbol, date, k, kind) with k = shares after / shares before
+    movers = rng.choice(n_stocks, size=max(4, n_stocks // 5), replace=False)
+    for i, j in enumerate(movers):
         t = int(rng.integers(T // 5, T - 5))
-        k = float(rng.choice([2.0, 5.0]))
-        split_ratio[t:, j] = k
-        actions.append((syms[j], days[t], k))
+        if i % 2 == 0:
+            k, kind = float(rng.choice([2.0, 5.0, 10.0])), "split"
+            isin_ver[t:, j] += 1
+        else:
+            k, kind = float(rng.choice([1.5, 2.0, 3.0])), "bonus"   # bonus 1:2, 1:1, 2:1
+        split_ratio[t:, j] *= k
+        actions.append((syms[j], days[t], k, kind))
+    # a genuine crash (fraud news): -50% on heavy trading. It must NOT be mistaken for a 1:1 bonus.
+    crash_t = T // 2
+    crash_j = int(max((j for j in range(n_stocks) if j not in set(movers) and listed[crash_t - 70:crash_t + 5, j].all()),
+                      key=lambda j: size[j]))   # a liquid stock, so it is in the universe
+    true_ret[crash_t, crash_j] = -0.5
+    true_px = 200 * np.exp(rng.normal(0, 0.8, n_stocks)) * np.cumprod(1 + true_ret, axis=0)
     raw_px = true_px / split_ratio
     locked_up = rng.random((T, n_stocks)) < 0.002
+    locked_up[crash_t, crash_j] = False
+    # a weekend special session (like Muhurat or Budget-day trading) that we don't download:
+    # the next file's "previous close" refers to that session, not to Friday
+    special_t = next(t for t in range(1, T) if days[t].weekday() == 0 and t > T // 3)
     gt = {"days": days, "holidays": sorted(holidays), "symbols": syms, "actions": actions,
-          "true_close": true_px, "listed": listed, "size": size}
+          "true_close": true_px, "listed": listed, "size": size,
+          "crash": (syms[crash_j], days[crash_t]), "etf": "GOLDBEES"}
 
     last_close: dict[int, float] = {}
+    etf_px = 50.0
     for t, d in enumerate(days):
         rows_old, rows_new = [], []
         for j, s in enumerate(syms):
@@ -75,12 +93,13 @@ def make_archive(root: Path, start: date, end: date, n_stocks: int = 60, seed: i
                 continue
             c = _tick(raw_px[t, j])
             if t > 0 and listed[t - 1, j]:
-                # previous close is the real last close; NSE adjusts it on a split's ex-date
-                prev = _tick(last_close[j] * split_ratio[t - 1, j] / split_ratio[t, j])
+                prev = last_close[j]                       # unadjusted, as NSE publishes it
+                if t == special_t:
+                    prev = _tick(prev * (1 + rng.normal(0, 0.01)))
             else:
                 prev = c
-            if locked_up[t, j] and t > 0:
-                c = _tick(prev * 1.05)
+            if locked_up[t, j] and t > 0 and listed[t - 1, j] and split_ratio[t, j] == split_ratio[t - 1, j]:
+                c = _tick(last_close[j] * 1.05)
                 o = h = lo = c
             else:
                 o = _tick(c * (1 + rng.normal(0, vol[j] / 3)))
@@ -89,14 +108,24 @@ def make_archive(root: Path, start: date, end: date, n_stocks: int = 60, seed: i
                 h, lo = _tick(h), _tick(lo)
             last_close[j] = c
             qty = int(max(1, size[j] * 2e5 * np.exp(rng.normal(0, 0.4)) / max(c, 1) * 100))
+            if (t, j) == (crash_t, crash_j):
+                qty *= 6
             val = round(qty * (o + h + lo + c) / 4, 2)
             series = "EQ" if rng.random() > 0.01 else "BE"
-            isin = f"INE{j:05d}A01{d.year % 10}"
+            isin = f"INE{j:05d}A01{isin_ver[t, j]}"
             rows_old.append([s, series, o, h, lo, c, c, prev, qty, val, f"{d.day:02d}-{MON[d.month - 1]}-{d.year}",
                              int(qty / 50) + 1, isin, ""])
             rows_new.append([d.isoformat(), d.isoformat(), "CM", "NSE", "STK", str(1000 + j), isin, s, series,
                              "", "", "", "", s + " LTD", o, h, lo, c, c, prev, "", c, "", "", qty, val,
                              int(qty / 50) + 1, "F1", 1, "", "", "", "", ""])
+        # a gold ETF: EQ series, hugely traded, but a fund (INF... ISIN), not a company
+        etf_px = _tick(etf_px * (1 + rng.normal(0, 0.005)))
+        eq_ = [etf_px] * 4
+        rows_old.append(["GOLDBEES", "EQ", *eq_, etf_px, etf_px, 10**8, etf_px * 10**8,
+                         f"{d.day:02d}-{MON[d.month - 1]}-{d.year}", 9999, "INF204KB17I5", ""])
+        rows_new.append([d.isoformat(), d.isoformat(), "CM", "NSE", "STK", "9998", "INF204KB17I5", "GOLDBEES", "EQ",
+                         "", "", "", "", "GOLD ETF", *eq_, etf_px, etf_px, "", etf_px, "", "", 10**8,
+                         etf_px * 10**8, 9999, "F1", 1, "", "", "", "", ""])
         # non-equity rows that must be ignored
         rows_old.append(["GSEC2030", "GS", 100, 100, 100, 100, 100, 100, 10, 1000,
                          f"{d.day:02d}-{MON[d.month - 1]}-{d.year}", 1, "IN0020", ""])

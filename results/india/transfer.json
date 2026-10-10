@@ -1,37 +1,37 @@
 {
   "factors_compared": 245,
-  "ic_correlation": 0.675,
-  "ic_rank_correlation": 0.665,
+  "ic_correlation": 0.693,
+  "ic_rank_correlation": 0.683,
   "strong_in_china": 131,
-  "strong_in_china_same_sign_in_india": 110,
-  "strong_in_china_also_strong_in_india": 76,
-  "strong_in_india": 126,
-  "strong_in_both": 76,
+  "strong_in_china_same_sign_in_india": 112,
+  "strong_in_china_also_strong_in_india": 77,
+  "strong_in_india": 124,
+  "strong_in_both": 77,
   "top_travellers": [
     {
       "name": "vol_adi_imbalance",
       "rank_ic_china": -0.0349,
-      "rank_ic_india": -0.0257
+      "rank_ic_india": -0.0264
     },
     {
       "name": "rev_sign_range",
       "rank_ic_china": 0.0327,
-      "rank_ic_india": 0.0346
+      "rank_ic_india": 0.0345
+    },
+    {
+      "name": "rev_short_term",
+      "rank_ic_china": 0.0417,
+      "rank_ic_india": 0.0285
+    },
+    {
+      "name": "avg_sign_delta5_rev",
+      "rank_ic_china": 0.0322,
+      "rank_ic_india": 0.0207
     },
     {
       "name": "rev_short_term_overshoot",
       "rank_ic_china": 0.0261,
-      "rank_ic_india": 0.0217
-    },
-    {
-      "name": "cross_sectional_shock_reversal",
-      "rank_ic_china": 0.038,
-      "rank_ic_india": 0.0371
-    },
-    {
-      "name": "normalized_short_term_return_reversal",
-      "rank_ic_china": 0.0348,
-      "rank_ic_india": 0.0254
+      "rank_ic_india": 0.0229
     }
   ]
 }

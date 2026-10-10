@@ -132,34 +132,48 @@ def test_busy_server_is_retried_and_never_saved_as_holiday():
 
 def test_build_adjusts_splits_and_builds_point_in_time_universe():
     build_india.RAW, build_india.OUT = RAW, OUT
-    sys.argv = ["build_india.py", "--universe", "15", "--start", str(START)]
+    sys.argv = ["build_india.py", "--universe", "25", "--start", str(START)]
     build_india.main()
     px = pd.read_parquet(OUT / "prices.parquet")
     member = pd.read_parquet(OUT / "membership.parquet")
     q = json.loads((OUT / "data_quality.json").read_text())
     assert q["benchmark"] == "Nifty 200"
 
-    # splits: adjusted returns must follow the true returns, with no -50%/-80% jump on the ex-date
+    # splits AND bonuses: adjusted returns must follow the true returns, with no -50%/-90% jump
+    # on the ex-date; the genuine -50% crash must stay; a weekend special session changes nothing
     days = pd.DatetimeIndex(GT["days"])
     true_close = pd.DataFrame(GT["true_close"], index=days, columns=GT["symbols"])
     adj = px["close"].unstack("code")
     locked = (px["high"] == px["low"]).unstack("code")
-    for sym, d, k in GT["actions"]:
-        if sym not in adj.columns:
-            continue
+    checked = 0
+    for sym in adj.columns:
         a = adj[sym].dropna()
         tr = true_close[sym].reindex(a.index)
         ra, rt = a.pct_change(), tr.pct_change()
         lk = locked[sym].reindex(a.index).fillna(False)
         ok = ~(lk | lk.shift(1, fill_value=False)) & ra.notna() & rt.notna()  # skip locked days + day after
         err = (ra[ok] - rt[ok]).abs()
-        assert err.max() < 0.01, f"split not adjusted for {sym} on {d} (max error {err.max():.3f})"
-        assert abs(ra.get(pd.Timestamp(d), 0)) < 0.2, f"jump left on the ex-date for {sym}"
-    in_uni = {a[0] for a in GT["actions"]} & set(adj.columns)
-    assert 1 <= q["corporate_action_adjustments"] <= len(in_uni), q["corporate_action_adjustments"]
+        assert err.max() < 0.01, f"{sym}: adjusted returns differ from true returns by {err.max():.3f}"
+        checked += 1
+    assert checked >= 20, checked
+    for sym, d, k, kind in GT["actions"]:
+        if sym in adj.columns and pd.Timestamp(d) in adj[sym].dropna().index:
+            assert abs(adj[sym].pct_change().get(pd.Timestamp(d), 0)) < 0.2, f"{kind} {sym} on {d} not adjusted"
+    crash_sym, crash_day = GT["crash"]
+    assert crash_sym in adj.columns, "the crash stock should be in the universe"
+    assert adj[crash_sym].pct_change()[pd.Timestamp(crash_day)] < -0.45, "a real crash must not be 'adjusted' away"
+    ev = pd.read_csv(OUT / "corporate_actions.csv")
+    done = ev[ev["adjusted"]]
+    in_uni = {(a[0], a[3]) for a in GT["actions"]
+              if a[0] in adj.columns and pd.Timestamp(a[1]) > adj[a[0]].first_valid_index()}
+    assert q["splits_adjusted"] == sum(1 for _, k in in_uni if k == "split"), (q["splits_adjusted"], in_uni)
+    assert q["bonuses_adjusted"] == sum(1 for _, k in in_uni if k == "bonus"), (q["bonuses_adjusted"], in_uni)
+    assert q["bonuses_adjusted"] >= 1 and q["splits_adjusted"] >= 1
+    assert crash_sym not in set(done["symbol"])
+    assert GT["etf"] not in set(px.index.get_level_values("code")), "ETFs must be dropped"
 
-    # universe: at most 15 a day, only changes at month starts, decided from past data
-    assert member.sum(axis=1).max() <= 15
+    # universe: at most 25 a day, only changes at month starts, decided from past data
+    assert member.sum(axis=1).max() <= 25
     changes = member.astype(int).diff().abs().sum(axis=1)
     changed_days = changes[changes > 0].index
     assert all(d.month != (d - pd.offsets.BDay(1)).month or d.day <= 7 for d in changed_days)

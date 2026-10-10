@@ -12,10 +12,18 @@ Key choices
     highest median daily traded value over the previous 63 trading days (needs >= 50
     trading days). Only past data is used, delisted stocks are kept, so there is no
     survivorship bias, and it needs no historical index-membership lists.
-  * Corporate actions: on the ex-date of a split, bonus or rights issue NSE adjusts the
-    stock's "previous close" in the bhavcopy. The ratio previous-close / actual last
-    close therefore measures the adjustment, and earlier prices are scaled by it.
-    Regular dividends are not adjusted (the Nifty price indices aren't either).
+  * Only companies: ETFs and fund units also trade in the EQ series, so rows whose ISIN
+    isn't a company ISIN (INE...) are dropped.
+  * Splits and bonuses are found in the data itself (NSE's bhavcopy has no corporate-action
+    column, and its "previous close" is NOT adjusted on ex-dates):
+      - split / consolidation: the stock's ISIN changes (India issues a new ISIN when the
+        face value changes) and the price jumps; the ratio is the nearest standard ratio
+        (1:2, 1:5, 1:10, ...).
+      - bonus (ISIN unchanged): the price falls to almost exactly a standard ratio (2/3, 1/2,
+        1/3, ...) while traded value in rupees stays normal and share volume rises to match.
+        A real crash comes with a burst of traded value, so it is left alone.
+    Only information up to the ex-date is used. Every adjustment is listed in
+    corporate_actions.csv. Dividends are not adjusted (the Nifty price indices aren't either).
   * Locked circuits: a stock that traded at a single price all day (high == low) after
     a move of 2% or more is treated as locked at its price band, so it can't be bought
     (locked up) or sold (locked down) at that day's open.
@@ -56,6 +64,12 @@ def load_equities() -> pd.DataFrame:
     if bad:
         print(f"    skipped {len(bad)} unreadable files, e.g. {bad[0][:150]}", flush=True)
     df = pd.concat(frames, ignore_index=True).dropna(subset=["close"])
+    # companies only: ETFs / fund units (INF... ISINs) also trade in the EQ series
+    isin = df["isin"].fillna("").astype(str).str.upper()
+    n_funds = int(((isin != "") & ~isin.str.startswith("INE")).sum())
+    df = df[(isin == "") | isin.str.startswith("INE")]
+    if n_funds:
+        print(f"    dropped {n_funds:,} ETF / fund rows (non-company ISINs)", flush=True)
     # one row per stock per day; prefer the normal EQ row if a stock appears in two series
     df["_eq"] = (df["series"] == "EQ").astype(int)
     df = df.sort_values("_eq").drop_duplicates(["date", "symbol"], keep="last").drop(columns="_eq")
@@ -81,16 +95,55 @@ def universe(value: pd.DataFrame, n: int) -> pd.DataFrame:
     return member
 
 
-def adjustment_factor(close: pd.DataFrame, prevclose: pd.DataFrame) -> tuple[pd.DataFrame, int]:
-    last_close = close.ffill().shift(1)
-    r = prevclose / last_close
-    r = r.where(np.isfinite(r))
-    event = (r - 1).abs() > 0.002
-    r = r.where(event & (r > 0.01) & (r < 100), 1.0).fillna(1.0)
-    n_events = int((r != 1.0).sum().sum())
+# standard ratios: shares after / shares before (splits, bonuses, both, and consolidations)
+NICE = sorted({1.25, 4 / 3, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0, 12.0, 15.0, 20.0, 25.0, 50.0, 100.0,
+               0.5, 0.25, 0.2, 0.1})
+SPLIT_MATCH = 0.15     # log distance allowed between the price move and the standard ratio (ISIN changed)
+BONUS_MATCH = 0.06     # tighter when the ISIN didn't change (bonus 1:2 or 1:1) ...
+BONUS_MATCH_BIG = 0.10  # ... looser for big bonuses (price to a third or less: real crashes that size are rare)
+BONUS_MAX_MOVE = 0.72  # bonus candidates: price at most 72% of the last close (bonus 1:2 or bigger)
+BONUS_MAX_VALUE = 3.0  # a real crash trades far more rupees than usual; a bonus doesn't
+
+
+def detect_actions(close: pd.DataFrame, volume: pd.DataFrame, value: pd.DataFrame,
+                   isin: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Find splits/bonuses; return (price factor to multiply prices by, table of events)."""
+    last = close.ffill().shift(1)
+    move = close / last
+    isin_last = isin.ffill().shift(1)
+    new_isin = isin.notna() & isin_last.notna() & (isin != isin_last) & close.notna()
+    vol_med = volume.where(volume > 0).rolling(20, min_periods=5).median().shift(1)
+    val_med = value.where(value > 0).rolling(20, min_periods=5).median().shift(1)
+    vol_ratio, val_ratio = volume / vol_med, value / val_med
+    nice = np.array(NICE)
+
+    k_split = (move.notna() & new_isin & (np.log(move).abs() > np.log(1.25)))
+    k_bonus = (move.notna() & ~new_isin & (move <= BONUS_MAX_MOVE) & (move > 0.005))
+    rows = []
+    for kind, mask in (("split", k_split), ("bonus", k_bonus)):
+        for i, j in np.argwhere(mask.to_numpy()):
+            d, sym = mask.index[i], mask.columns[j]
+            m = float(move.at[d, sym])
+            k = float(nice[np.argmin(np.abs(np.log(1 / m) - np.log(nice)))])   # shares after / before
+            dist = abs(np.log(m * k))
+            vr, va = float(vol_ratio.at[d, sym]), float(val_ratio.at[d, sym])
+            if kind == "split":
+                ok = dist < SPLIT_MATCH
+            else:
+                tol = BONUS_MATCH if k < 3 else BONUS_MATCH_BIG
+                ok = (k > 1 and dist < tol and np.isfinite(va) and va <= BONUS_MAX_VALUE
+                      and np.isfinite(vr) and vr >= 0.5 * k)
+            rows.append({"date": d, "symbol": sym, "kind": kind, "price_move": round(m, 4), "ratio": k,
+                         "match": round(dist, 4), "volume_x": round(vr, 2), "value_x": round(va, 2),
+                         "adjusted": bool(ok)})
+    events = pd.DataFrame(rows, columns=["date", "symbol", "kind", "price_move", "ratio", "match",
+                                         "volume_x", "value_x", "adjusted"])
+    r = pd.DataFrame(1.0, index=close.index, columns=close.columns)
+    for e in events[events["adjusted"]].itertuples():
+        r.at[e.date, e.symbol] = 1.0 / e.ratio
     cum = r.iloc[::-1].cumprod().iloc[::-1]          # product over s >= t
-    factor = cum.shift(-1).fillna(1.0)              # product over s > t
-    return factor, n_events
+    factor = cum.shift(-1).fillna(1.0)              # product over s > t: scales prices before the ex-date
+    return factor, events.sort_values(["date", "symbol"]).reset_index(drop=True)
 
 
 def load_index(dates: pd.DatetimeIndex) -> tuple[pd.DataFrame, str]:
@@ -157,8 +210,13 @@ def main() -> None:
     # corporate actions are measured on closes from any equity series (a stock can spend days in
     # the trade-to-trade BE series), but only EQ days are treated as tradable
     cont = {f: sub_all.pivot(index="date", columns="symbol", values=f).reindex(index=dates, columns=codes)
-            for f in ["close", "prevclose"]}
-    factor, n_events = adjustment_factor(cont["close"], cont["prevclose"])
+            for f in ["close", "volume", "value", "isin"]}
+    factor, events = detect_actions(cont["close"], cont["volume"], cont["value"], cont["isin"])
+    events.to_csv(OUT / "corporate_actions.csv", index=False)
+    done = events[events["adjusted"]]
+    print(f"    corporate actions: {int((done['kind'] == 'split').sum())} splits/consolidations (ISIN changed), "
+          f"{int((done['kind'] == 'bonus').sum())} bonuses; {int((~events['adjusted']).sum())} big moves "
+          "left as real price moves (see corporate_actions.csv)", flush=True)
     raw_vwap = (w["value"] / w["volume"]).where(w["volume"] > 0)
     adj = {
         "open": w["open"] * factor, "high": w["high"] * factor, "low": w["low"] * factor,
@@ -196,11 +254,16 @@ def main() -> None:
         "trading_days": int(len(member)),
         "unique_stocks_ever_in_universe": int(len(codes)),
         "members_per_day_min_median_max": [int(per_day.min()), int(per_day.median()), int(per_day.max())],
-        "corporate_action_adjustments": n_events,
+        "splits_adjusted": int((done["kind"] == "split").sum()),
+        "bonuses_adjusted": int((done["kind"] == "bonus").sum()),
+        "corporate_action_adjustments": int(len(done)),
         "member_days_missing_close_pct": round(100 * float(1 - len(in_u) / max(int(member.values.sum()), 1)), 3),
         "member_days_locked_up_pct": round(100 * float(in_u["limit_up"].mean()), 3),
         "member_days_locked_down_pct": round(100 * float(in_u["limit_down"].mean()), 3),
         "member_days_abs_return_gt_25pct": int((in_u["ret_1d"].abs() > 0.25).sum()),
+        "biggest_member_day_moves": [
+            f"{d.date()} {c} {r:+.1%}" for (d, c), r in
+            in_u["ret_1d"].dropna().pipe(lambda x: x.reindex(x.abs().sort_values(ascending=False).index)).head(10).items()],
         "benchmark": bench,
         "benchmark_first_last": [round(float(index["level"].dropna().iloc[0]), 2),
                                  round(float(index["level"].dropna().iloc[-1]), 2)],

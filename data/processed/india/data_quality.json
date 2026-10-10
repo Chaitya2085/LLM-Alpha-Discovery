@@ -5,21 +5,35 @@
   "end": "2026-10-09",
   "first_universe_day": "2014-04-01",
   "trading_days": 3149,
-  "unique_stocks_ever_in_universe": 674,
+  "unique_stocks_ever_in_universe": 664,
   "members_per_day_min_median_max": [
     194,
     200,
     200
   ],
-  "corporate_action_adjustments": 5236,
-  "member_days_missing_close_pct": 0.342,
-  "member_days_locked_up_pct": 0.027,
+  "splits_adjusted": 35,
+  "bonuses_adjusted": 173,
+  "corporate_action_adjustments": 208,
+  "member_days_missing_close_pct": 0.347,
+  "member_days_locked_up_pct": 0.028,
   "member_days_locked_down_pct": 0.039,
-  "member_days_abs_return_gt_25pct": 268,
+  "member_days_abs_return_gt_25pct": 136,
+  "biggest_member_day_moves": [
+    "2016-12-01 SUNILHITEC -94.7%",
+    "2020-08-24 EICHERMOT -90.0%",
+    "2019-06-20 JETAIRWAYS +89.9%",
+    "2014-09-04 J&KBANK -89.3%",
+    "2022-11-21 EASEMYTRIP -85.0%",
+    "2015-06-03 ADANIENT -82.8%",
+    "2022-11-10 NYKAA -82.2%",
+    "2015-04-23 TWL -80.6%",
+    "2018-04-19 PHILIPCARB -79.0%",
+    "2015-11-26 NATCOPHARM -78.9%"
+  ],
   "benchmark": "Nifty 200",
   "benchmark_first_last": [
     3162.9,
     13062.85
   ],
-  "seconds": 39
+  "seconds": 40
 }

@@ -10,15 +10,15 @@
   "valid": 245,
   "scored": 245,
   "strong": 77,
-  "novel": 142,
+  "novel": 141,
   "slow": 183,
-  "shortlist": 25,
+  "shortlist": 24,
   "best_alpha158_single_feature_rank_ic": {
     "feature": "KLEN",
-    "rank_ic": -0.0445,
-    "t": -11.07,
-    "median_abs_rank_ic": 0.0147,
-    "top10_abs": 0.0367
+    "rank_ic": -0.0454,
+    "t": -11.48,
+    "median_abs_rank_ic": 0.0155,
+    "top10_abs": 0.0373
   },
   "seconds": 103
 }

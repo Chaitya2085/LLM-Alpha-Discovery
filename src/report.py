@@ -137,7 +137,10 @@ def india_data() -> str | None:
             f"universe from {day(q['first_universe_day'])}\n"
             f"- **{q['unique_stocks_ever_in_universe']}** different stocks passed through the top-200 universe "
             f"(median {med} members a day)\n"
-            f"- **{q['corporate_action_adjustments']}** split/bonus/rights adjustments detected from NSE's previous-close field\n"
+            + (f"- Corporate actions adjusted: **{q['splits_adjusted']}** splits (ISIN changed) and "
+               f"**{q['bonuses_adjusted']}** bonuses, found in the price data\n" if "splits_adjusted" in q else
+               f"- **{q['corporate_action_adjustments']}** corporate-action adjustments\n") +
+            f"- One-day moves over 25% left among top-200 stocks: {q['member_days_abs_return_gt_25pct']}\n"
             f"- Benchmark: **{q['benchmark']}**, {q['benchmark_first_last'][0]:,.0f} → {q['benchmark_first_last'][1]:,.0f}\n"
             f"- Locked-circuit days among members: {q['member_days_locked_up_pct']}% up, "
             f"{q['member_days_locked_down_pct']}% down")

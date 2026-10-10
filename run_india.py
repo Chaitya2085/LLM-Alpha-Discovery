@@ -72,6 +72,7 @@ def main() -> None:
 
     step(2, "build the India dataset")
     run(["build_india.py", "--start", a.start])
+    run(["india_diagnose.py"], check=False)   # health check: adjustments and the biggest moves left
 
     step(3, "compute Alpha158 features")
     run(["build_features.py", "--market", "india"])
