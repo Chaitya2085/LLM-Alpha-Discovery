@@ -164,7 +164,10 @@ def india_transfer() -> str | None:
 
 
 def _short(label: str) -> str:
-    return label.split(": ", 1)[-1].split("/")[-1].replace(":free", "")
+    prov, _, model = label.partition(": ")
+    if model == "auto-free":
+        return f"{prov} (free models)"
+    return model.split("/")[-1].replace(":free", "")
 
 
 def phase4_summary(cfg=INDIA) -> str | None:
@@ -208,6 +211,64 @@ def phase4_best(cfg=INDIA) -> str | None:
     return "\n".join(rows)
 
 
+def phase5_table(cfg=INDIA) -> str | None:
+    f = cfg.results / "phase5_summary.json"
+    if not f.exists():
+        return None
+    s = json.loads(f.read_text())
+    yrs = s["test_years"]
+    rows = ["| Model | Book | Return / yr | Index / yr | Excess before costs | Excess after costs | Info ratio | "
+            "Weeks beating index | Max drawdown | Weekly turnover | Costs / yr |",
+            "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for name, v in s["variants"].items():
+        for book, b in v["books"].items():
+            rows.append(f"| {name} | {book} | {pct(b['ann_return'])} | {pct(b['bench_ann_return'])} | "
+                        f"{pct(b.get('gross_excess_ann'), signed=True)} | "
+                        f"{pct(b['excess_ann'], signed=True)} | {num(b['info_ratio'], '{:.2f}')} | "
+                        f"{b['weekly_hit_rate']:.0%} | {pct(b['max_drawdown'])} | {b['avg_turnover']:.0%} | "
+                        f"{pct(b['cost_ann'])} |")
+    lines = [f"Walk-forward test {yrs[0]}–{yrs[-1]} (each year predicted by a model trained only on earlier "
+             f"years); after {cfg.buy_cost:.2%} buy / {cfg.sell_cost:.2%} sell costs.", ""] + rows + [""]
+    for name, v in s["variants"].items():
+        c = v["calibration"]
+        extra = (f"; LLM factors carry {v['llm_importance_share']:.0%} of the model's decisions"
+                 if v.get("llm_importance_share") else "")
+        ch = v.get("chosen_design")
+        if ch:
+            extra += (f"; best trading design of {v['design_grid_tried']} tried: {ch['stocks']} stocks, keep while "
+                      f"in the top {ch['keep_zone']}, trade every {ch['trade_every_weeks']} week(s)")
+        lines.append(f"- **{name}:** weekly rank IC **{num(v['weekly_rank_ic'])}** (t {num(v['weekly_rank_ic_t'], '{:.1f}')}); "
+                     f"confidence vs outcome {c['ece']:.1%} apart on average; Brier skill "
+                     f"{num(c['brier_skill'], '{:+.3f}')}{extra}")
+    return "\n".join(lines)
+
+
+def phase5_grid(cfg=INDIA) -> str | None:
+    f = cfg.results / "phase5_grid.csv"
+    if not f.exists():
+        return None
+    g = pd.read_csv(f)
+    rows = ["| Model | Stocks | Keep while in top | Trade every | Excess before costs | Excess after costs | "
+            "Info ratio | Weekly turnover | Max drawdown |", "|---|---|---|---|---|---|---|---|---|"]
+    for t in g.itertuples():
+        rows.append(f"| {t.variant} | {t.stocks} | {t.keep_zone} | {t.trade_every_weeks} wk | "
+                    f"{pct(t.gross_excess_ann, signed=True)} | {pct(t.excess_ann, signed=True)} | "
+                    f"{num(t.info_ratio, '{:.2f}')} | {t.avg_turnover:.0%} | {pct(t.max_drawdown)} |")
+    return "\n".join(rows)
+
+
+def phase5_regimes(cfg=INDIA) -> str | None:
+    f = cfg.results / "phase5_regimes.csv"
+    if not f.exists():
+        return None
+    r = pd.read_csv(f)
+    r = r[r["book"] == "Top 20"]
+    rows = ["| Model | Market regime | Weeks | Weeks beating index | Excess / yr |", "|---|---|---|---|---|"]
+    for t in r.itertuples():
+        rows.append(f"| {t.variant} | {t.regime} | {t.weeks} | {t.hit_rate:.0%} | {pct(t.excess_ann, signed=True)} |")
+    return "\n".join(rows)
+
+
 BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "phase2_shortlist": phase2_shortlist, "phase2_models": phase2_models,
           "india_data": india_data,
@@ -215,7 +276,8 @@ BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "india_phase2_summary": lambda: phase2_summary(INDIA.results),
           "india_phase2_shortlist": lambda: phase2_shortlist(INDIA.results, limit=10),
           "india_transfer": india_transfer,
-          "phase4_summary": phase4_summary, "phase4_best": phase4_best}
+          "phase4_summary": phase4_summary, "phase4_best": phase4_best,
+          "phase5_table": phase5_table, "phase5_grid": phase5_grid, "phase5_regimes": phase5_regimes}
 
 
 def main() -> None:

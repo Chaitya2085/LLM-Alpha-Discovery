@@ -16,9 +16,9 @@
   "best_alpha158_single_feature_rank_ic": {
     "feature": "KLEN",
     "rank_ic": -0.0454,
-    "t": -11.48,
+    "t": -11.47,
     "median_abs_rank_ic": 0.0156,
-    "top10_abs": 0.0373
+    "top10_abs": 0.0374
   },
-  "seconds": 103
+  "seconds": 101
 }

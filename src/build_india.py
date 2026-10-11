@@ -102,11 +102,11 @@ ISIN_WINDOW = 10        # trading days: NSE files can show the new ISIN a few da
 SPLIT_MATCH = 0.20      # log distance allowed when the ISIN changed (the price can move ~20% that day)
 BONUS_MATCH = 0.06      # no ISIN change: 1:1 bonus (half price) needs a close match ...
 BONUS_MATCH_BIG = 0.10  # ... looser for big ones (a real crash to a third or less is very rare)
-CANDIDATE_MOVE = 0.60   # drops to 60% of the last close or lower are treated as corporate actions
+CANDIDATE_MOVE = 0.60   # without an opening price: drops to 60% or lower count as corporate actions
 SMALL_BONUS = [4 / 3, 1.4, 1.5]   # bonus 1:3, 2:5, 1:2: price to 75% / 71% / 67%
-SMALL_BONUS_MAX = 0.78
-SMALL_BONUS_CLOSE = 0.05  # small bonuses look like a bad day, so both the close AND the open
-SMALL_BONUS_OPEN = 0.03   # must sit on the ratio (the exchange resets the base price on the ex-date)
+OPEN_RESET = 0.80       # opening 20%+ below the last close = the exchange reset the base price
+OPEN_MATCH = 0.05       # an open this close to a bonus ratio is that bonus (overnight news moves it a little)
+WATCH_MOVE = 0.78       # drops to 78% or lower are examined (and listed in corporate_actions.csv)
 OVERRIDES = ROOT / "config" / "india_overrides.csv"
 
 
@@ -131,15 +131,17 @@ def detect_actions(close: pd.DataFrame, volume: pd.DataFrame, value: pd.DataFram
                    open_: pd.DataFrame | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Find splits, bonuses and other capital events; return (price factor, table of events).
 
-    A one-day drop to 60% of the last close or lower is almost always a corporate action in
-    a top-200 stock (real single-day crashes that big are rare; list those in
-    config/india_overrides.csv as 'keep'):
+    The key clue is the OPENING price. On an ex-date the exchange resets the stock's base price,
+    so it opens far below yesterday's close (a 1:1 bonus opens near half). A real crash can't
+    open that low: price bands and pre-open limits keep the open within ~20% (in the real data
+    every big crash opened at -10% or less, then fell during the day).
       split   the ISIN changes within ISIN_WINDOW days -> nearest face-value ratio (1:2, 1:5, 1:10...)
-      bonus   no ISIN change, price close to a standard bonus ratio (1:1 -> half, 2:1 -> a third...)
-      other   neither (demergers, capital reductions, unusual ratios): treated as return-neutral,
-              i.e. scaled by the actual move, which is what a shareholder who kept the new shares saw
-    Smaller drops (to 60-78%) are adjusted only when both the open and the close sit on a small
-    bonus ratio (1:2, 2:5, 1:3); otherwise they're left as real price moves."""
+      bonus   no ISIN change; opened 20%+ lower, right on a bonus ratio (1/2, 1/3, 2/3 ...)
+      other   opened 20%+ lower but not on a ratio (demergers, rights, capital reductions): the
+              price is rescaled at the open, so the day's own open->close move still counts
+      kept    opened normally: a real price move, however big
+    config/india_overrides.csv can force 'keep' or 'adjust' for any day. Without an opening
+    price, a drop to 60% or less is treated as a corporate action (close-based rules)."""
     overrides = load_overrides() if overrides is None else overrides
     last = close.ffill().shift(1)
     move = close / last
@@ -148,8 +150,9 @@ def detect_actions(close: pd.DataFrame, volume: pd.DataFrame, value: pd.DataFram
     near_change = changed.astype(float).rolling(2 * ISIN_WINDOW + 1, center=True, min_periods=1).max() > 0
     val_med = value.where(value > 0).rolling(20, min_periods=5).median().shift(1)
     val_ratio = value / val_med
-    gap = (open_ / last) if open_ is not None else move * np.nan
-    cand = move.notna() & ((move <= SMALL_BONUS_MAX) | (near_change & (np.log(move).abs() > np.log(1.6))))
+    gap = (open_ / last).where(open_ > 0) if open_ is not None else move * np.nan
+    big_move = (move <= WATCH_MOVE) | (gap <= OPEN_RESET)
+    cand = move.notna() & (big_move | (near_change & (np.log(move).abs() > np.log(1.6))))
     cand = cand & (move > 0.001)
     for (sym, d) in overrides:
         if sym in close.columns and d in close.index and pd.notna(move.at[d, sym]):
@@ -158,19 +161,27 @@ def detect_actions(close: pd.DataFrame, volume: pd.DataFrame, value: pd.DataFram
     for i, j in np.argwhere(cand.to_numpy()):
         d, sym = cand.index[i], cand.columns[j]
         m = float(move.iat[i, j])
+        g = float(gap.iat[i, j])
         if bool(near_change.iat[i, j]):
             k, dist = _nearest(m, SPLIT_RATIOS)
             kind, ok = "split", dist < SPLIT_MATCH
-        elif m <= CANDIDATE_MOVE:
+            if not ok and np.isfinite(g) and g <= OPEN_RESET:
+                kind, k, ok = "other", 1.0 / g, True
+        elif np.isfinite(g):
+            if g <= OPEN_RESET:
+                k, dist = _nearest(g, BONUS_RATIOS + SMALL_BONUS)
+                if dist < OPEN_MATCH:
+                    kind, ok = "bonus", True
+                else:
+                    kind, k, ok = "other", 1.0 / g, True
+            else:
+                k, _ = _nearest(m, BONUS_RATIOS + SMALL_BONUS)
+                kind, ok = "kept", False
+        else:  # no opening price: fall back on the close
             k, dist = _nearest(m, BONUS_RATIOS)
-            kind, ok = "bonus", dist < (BONUS_MATCH if k < 3 else BONUS_MATCH_BIG)
-        else:
-            k, dist = _nearest(m, SMALL_BONUS)
-            g = float(gap.iat[i, j])
-            kind = "bonus"
-            ok = dist < SMALL_BONUS_CLOSE and np.isfinite(g) and abs(np.log(g * k)) < SMALL_BONUS_OPEN
-        if not ok and m <= CANDIDATE_MOVE:
-            kind, k, ok = "other", 1.0 / m, True
+            kind, ok = "bonus", m <= CANDIDATE_MOVE and dist < (BONUS_MATCH if k < 3 else BONUS_MATCH_BIG)
+            if not ok and m <= CANDIDATE_MOVE:
+                kind, k, ok = "other", 1.0 / m, True
         note = ""
         ov = overrides.get((sym, d))
         if ov:
@@ -180,7 +191,7 @@ def detect_actions(close: pd.DataFrame, volume: pd.DataFrame, value: pd.DataFram
             elif action == "adjust":
                 k, ok, note = (ratio or k), True, "override: adjust"
         rows.append({"date": d, "symbol": sym, "kind": kind, "price_move": round(m, 4),
-                     "open_gap": round(float(gap.iat[i, j]), 4), "ratio": round(k, 4),
+                     "open_gap": round(g, 4), "ratio": round(k, 6),
                      "match": round(abs(np.log(m * k)), 4), "value_x": round(float(val_ratio.iat[i, j]), 2),
                      "isin_changed_nearby": bool(near_change.iat[i, j]), "adjusted": bool(ok), "note": note})
     events = pd.DataFrame(rows, columns=["date", "symbol", "kind", "price_move", "open_gap", "ratio", "match", "value_x",

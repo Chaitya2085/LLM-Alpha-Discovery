@@ -3,15 +3,15 @@ Results of your previous round. Each factor was tested the way it will be used: 
 Scoreboard: 15 proposed; 1 worked after costs (0 strongly), 2 worked in reverse, 2 too costly, 6 copies, 3 no reliable signal, 1 broken or duplicate.
 
 Build on these (they worked after costs):
-- price_vol_dispersion: -EMA(Std(close / vwap, 20) * Mean(volume, 20) / (volume + 1e-06), 15)  ->  +0.7%/yr after costs, beats the average in 48% of weeks (t 3.0)
+- price_vol_dispersion: -EMA(Std(close / vwap, 20) * Mean(volume, 20) / (volume + 1e-06), 15)  ->  +0.8%/yr after costs, beats the average in 48% of weeks (t 3.0)
 
 Worked in REVERSE (the stocks they liked did worse):
 - vol_surprise_persistence: EMA(Corr(volume / Mean(volume, 20), Ref(volume / Mean(volume, 20), 5), 60), 15)  ->  works in reverse: the stocks it likes do worse (t -3.3); the opposite idea may be right
 - vol_clustering_decay: EMA(Decay(Abs(volume - Mean(volume, 20)) / (Std(volume, 20) + 1e-06), 10), 15)  ->  works in reverse: the stocks it likes do worse (t -2.1); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- vol_trend_consistency: EMA(1 - Abs(Slope(volume, 60)) / (Std(volume, 60) + 1e-06), 15)  ->  before costs +2.6%/yr, after costs -1.7%/yr; 33% of the portfolio is replaced each week
-- vol_vol_regime: -EMA(Abs(Std(volume, 20) / Mean(volume, 20) - Std(volume, 60) / Mean(volume, 60)) * Std(returns, 20), 20)  ->  before costs +1.8%/yr, after costs -0.8%/yr; 20% of the portfolio is replaced each week
+- vol_trend_consistency: EMA(1 - Abs(Slope(volume, 60)) / (Std(volume, 60) + 1e-06), 15)  ->  before costs +2.5%/yr, after costs -1.8%/yr; 33% of the portfolio is replaced each week
+- vol_vol_regime: -EMA(Abs(Std(volume, 20) / Mean(volume, 20) - Std(volume, 60) / Mean(volume, 60)) * Std(returns, 20), 20)  ->  before costs +2.0%/yr, after costs -0.7%/yr; 20% of the portfolio is replaced each week
 
 Too similar to something known:
 - vol_weekly_meanrev: -EMA(Corr(volume, Ref(volume, 5), 60), 20)  ->  ranks stocks almost like vol_persistence_weekly (corr 0.99)

@@ -3,17 +3,17 @@ Results of your previous round. Each factor was tested the way it will be used: 
 Scoreboard: 30 proposed; 1 worked after costs (0 strongly), 1 worked in reverse, 7 too costly, 3 copies, 9 no reliable signal, 9 broken or duplicate.
 
 Build on these (they worked after costs):
-- price_range_position_slow: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 15) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  +4.4%/yr after costs, beats the average in 52% of weeks (t 3.7)
+- price_range_position_slow: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 15) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  +4.2%/yr after costs, beats the average in 52% of weeks (t 3.7)
 
 Worked in REVERSE (the stocks they liked did worse):
-- ema_volume_price_gap: EMA((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 20) * CsRank(volume)  ->  works in reverse: the stocks it likes do worse (t -3.0); the opposite idea may be right
+- ema_volume_price_gap: EMA((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 20) * CsRank(volume)  ->  works in reverse: the stocks it likes do worse (t -3.1); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- range_gap_cross10_rev: -Mean((high - low) / close, 10) * Sign(open - Ref(close, 1))  ->  before costs +5.1%/yr, after costs -4.8%/yr; 76% of the portfolio is replaced each week
-- pv_vol_price_gap_rev: -(open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1)  ->  before costs +4.2%/yr, after costs -5.9%/yr; 77% of the portfolio is replaced each week
-- short_term_reversal_gap_rev: -Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)  ->  before costs +3.1%/yr, after costs -7.1%/yr; 78% of the portfolio is replaced each week
-- rev_oscillator_cross_rev: -Sign(Mean(returns, 5) - Mean(returns, 15)) * (Mean(returns, 5) - Mean(returns, 15))  ->  before costs +3.0%/yr, after costs -7.0%/yr; 77% of the portfolio is replaced each week
-- corr_ret_vol15_volstd_rev: -Corr(volume, returns, 15) * Std(volume, 15)  ->  before costs +1.9%/yr, after costs -3.7%/yr; 42% of the portfolio is replaced each week
+- range_gap_cross10_rev: -Mean((high - low) / close, 10) * Sign(open - Ref(close, 1))  ->  before costs +5.3%/yr, after costs -4.6%/yr; 76% of the portfolio is replaced each week
+- pv_vol_price_gap_rev: -(open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1)  ->  before costs +4.5%/yr, after costs -5.6%/yr; 77% of the portfolio is replaced each week
+- rev_oscillator_cross_rev: -Sign(Mean(returns, 5) - Mean(returns, 15)) * (Mean(returns, 5) - Mean(returns, 15))  ->  before costs +3.2%/yr, after costs -6.9%/yr; 77% of the portfolio is replaced each week
+- short_term_reversal_gap_rev: -Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)  ->  before costs +3.0%/yr, after costs -7.1%/yr; 78% of the portfolio is replaced each week
+- corr_ret_vol15_volstd_rev: -Corr(volume, returns, 15) * Std(volume, 15)  ->  before costs +1.3%/yr, after costs -4.3%/yr; 42% of the portfolio is replaced each week
 
 Too similar to something known:
 - intraday_body_slow: Mean(Abs(close - open) / (high - low + 1e-06), 20) * CsRank(open)  ->  ranks stocks almost like intraday_body_ratio (corr 0.70)

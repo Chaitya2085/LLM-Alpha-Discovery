@@ -70,8 +70,8 @@ def make_archive(root: Path, start: date, end: date, n_stocks: int = 60, seed: i
             k, kind = float(rng.choice([1.5, 2.0, 3.0, 5.0])), "bonus"   # bonus 1:2, 1:1, 2:1, 4:1
         split_ratio[t:, j] *= k
         actions.append((syms[j], days[t], k, kind))
-    # a genuine crash (fraud news): exactly -50%. In the data it looks just like a 1:1 bonus, so the
-    # tests list it in the overrides file as a real move, the way YESBANK 2020-03-06 is listed.
+    # a genuine crash (fraud news during the day): -50% at the close, exactly a 1:1 bonus ratio,
+    # but it opened near yesterday's close, so it must be kept as a real move.
     crash_t = T // 2
     crash_j = int(max((j for j in range(n_stocks) if j not in set(movers) and listed[crash_t - 70:crash_t + 5, j].all()),
                       key=lambda j: size[j]))   # a liquid stock, so it is in the universe
@@ -106,6 +106,8 @@ def make_archive(root: Path, start: date, end: date, n_stocks: int = 60, seed: i
                 o = h = lo = c
             else:
                 o = _tick(c * (1 + rng.normal(0, vol[j] / 3)))
+                if (t, j) == (crash_t, crash_j):
+                    o = _tick(last_close[j] * 0.97)   # bad news during the day: opens near yesterday's close
                 h = max(o, c) * (1 + abs(rng.normal(0, vol[j] / 2)))
                 lo = min(o, c) * (1 - abs(rng.normal(0, vol[j] / 2)))
                 h, lo = _tick(h), _tick(lo)

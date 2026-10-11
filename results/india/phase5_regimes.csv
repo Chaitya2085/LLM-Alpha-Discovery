@@ -1,0 +1,16 @@
+regime,weeks,hit_rate,excess_ann,variant,book
+"calm, falling",21,0.5238095238095238,0.06450824295732642,Alpha158 only,Top 20
+"calm, rising",132,0.5227272727272727,0.00040662950979316893,Alpha158 only,Top 20
+turbulent,44,0.4318181818181818,0.10798206850297278,Alpha158 only,Top 20
+"calm, falling",21,0.5714285714285714,0.11399402403026893,Alpha158 only,Confident only (>= 50%)
+"calm, rising",132,0.3712121212121212,-0.029357110265742368,Alpha158 only,Confident only (>= 50%)
+turbulent,44,0.1590909090909091,-0.02117485830931732,Alpha158 only,Confident only (>= 50%)
+"calm, falling",21,0.5238095238095238,0.049511747386427205,Alpha158 + LLM factors,Top 20
+"calm, rising",132,0.49242424242424243,-0.03801703577143755,Alpha158 + LLM factors,Top 20
+turbulent,44,0.5,0.06968323681464923,Alpha158 + LLM factors,Top 20
+"calm, falling",21,0.47619047619047616,0.007982344518926524,Alpha158 + LLM factors,Confident only (>= 50%)
+"calm, rising",132,0.5,-0.05572247445808928,Alpha158 + LLM factors,Confident only (>= 50%)
+turbulent,44,0.5,0.0790148639047226,Alpha158 + LLM factors,Confident only (>= 50%)
+"calm, falling",21,0.5714285714285714,0.00837481505070267,Alpha158 + LLM factors,"Chosen: 40 stocks, keep top 120, trade every 1 wk"
+"calm, rising",132,0.5454545454545454,0.04016047684706349,Alpha158 + LLM factors,"Chosen: 40 stocks, keep top 120, trade every 1 wk"
+turbulent,44,0.5227272727272727,0.10078085362906787,Alpha158 + LLM factors,"Chosen: 40 stocks, keep top 120, trade every 1 wk"

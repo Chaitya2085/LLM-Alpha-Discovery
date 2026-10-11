@@ -18,7 +18,10 @@ MAX_LINES = len(SERIES)
 
 
 def short(label: str) -> str:
-    name = label.split(": ", 1)[-1].split("/")[-1].replace(":free", "")
+    prov, _, model = label.partition(": ")
+    if model == "auto-free":
+        return f"{prov} (free models)"
+    name = model.split("/")[-1].replace(":free", "")
     return name if len(name) <= 22 else name[:21] + "…"
 
 
@@ -39,6 +42,7 @@ def rounds_chart(cfg=CFG) -> Path | None:
     fig, ax = new_figure(10, 5.6)
     rmax = int(r["round"].max())
     ytop = max(10.0, r["useful_pct"].max() * 1.45)   # room for the legend
+    ends = []
     for i, lab in enumerate(researchers):
         c = SERIES[i]
         g = r[r["researcher"] == lab]
@@ -52,8 +56,15 @@ def rounds_chart(cfg=CFG) -> Path | None:
                     ms=6, mec="#fcfcfb", mew=1.5, zorder=3)
         end = g[g["arm"] == "feedback"].sort_values("round")
         if len(end):
-            ax.annotate(short(lab), (end["round"].iloc[-1], end["useful_pct"].iloc[-1]), xytext=(8, 0),
-                        textcoords="offset points", va="center", fontsize=8.5, color=INK)
+            ends.append((float(end["useful_pct"].iloc[-1]), int(end["round"].iloc[-1]), short(lab)))
+    gap = ytop * 0.045
+    placed: list[float] = []
+    for y, x, text in sorted(ends):
+        ly = max(y, ytop * 0.03)
+        while any(abs(ly - p) < gap for p in placed):
+            ly += gap
+        placed.append(ly)
+        ax.annotate(text, (x, y), xytext=(x + 0.08, ly), textcoords="data", va="center", fontsize=8.5, color=INK)
     ax.set_xticks(range(0, rmax + 1))
     ax.set_xticklabels(["Phase 2\nfactors"] + [f"round {k}" for k in range(1, rmax + 1)])
     ax.set_xlim(-0.2, rmax + 0.9)

@@ -15,8 +15,8 @@ benchmark; India is the product market.
 | 1 | China data, backtester, baselines (paper's market) | **Done** |
 | 2 | LLMs write factors: 4 models, 191 factors, scored | **Done** |
 | 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Done** |
-| 4 | Feedback loop: Researcher + Critic agents, judged weekly after costs | **Built, run on your Mac** |
-| 5 | Prediction model: combined factors, confidence scores, market regimes | |
+| 4 | Feedback loop: Researcher + Critic agents, judged weekly after costs | **Done** |
+| 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Built, run on your Mac** |
 | 6 | Honest test on held-out years + leakage experiment | |
 | 7 | AI agent team: the "trading floor" | |
 | 8 | Web app: war room, research lab, track record (English and Hindi) | |
@@ -94,7 +94,10 @@ and **feed mistakes back** to the LLMs.
 **Needs from you:** run the downloader on your Mac (about 20–40 minutes the first
 time).
 
-## Phase 4: Feedback loop (built)
+## Phase 4: Feedback loop (done)
+
+**Result (India, 2014–2020):** with the Critic's feedback, 10% of new factors worked weekly
+after costs; without feedback, under 1% (23 vs 2 factors). Biggest gain in the first round.
 
 - **Researcher agents** (one per LLM) propose factors; the **Critic agent** turns scores
   into plain feedback ("your momentum ideas worked in reverse", "this ranks stocks like
@@ -105,12 +108,16 @@ time).
 - The Critic is rule-based (reproducible, free); its notes never mention a market or dates.
 - **Needs from you:** `python run_phase4.py --providers gemini groq` (about 12 API calls).
 
-## Phase 5: Prediction model (accuracy)
+## Phase 5: Prediction model (built)
 
-- **Ensemble**: LightGBM ranking model on shortlisted LLM factors plus Alpha158, trained
-  walk-forward, predicting **5-day** returns.
-- **Confidence scores**, calibrated. **Regime detection** (calm, trending, turbulent) with
-  regime-aware weights. Trade only when the edge beats the cost.
+- One weekly model: Alpha158 + the LLM factors that passed + market regime features; LightGBM
+  learns which stocks beat the median stock, walk-forward by year (test 2017–2020).
+- **Calibrated confidence:** the weekly rank is mapped on the previous year to the probability of
+  beating the Nifty 200 over 5 days; checked with a reliability table and Brier score.
+- **Books after costs:** Top 20 (with a keep-zone to cut trading) and "confident only" (abstain
+  into the index when unsure). Results split by regime (calm rising, calm falling, turbulent).
+- Alpha158-only vs Alpha158 + LLM factors, to measure what the LLM factors add.
+- Nothing after 2020 is loaded; settings are fixed before Phase 6.
 
 ## Phase 6: Honest test
 

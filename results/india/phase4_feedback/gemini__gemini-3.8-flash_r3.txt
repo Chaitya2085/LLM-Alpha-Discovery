@@ -4,10 +4,10 @@ Scoreboard: 30 proposed; 5 worked after costs (0 strongly), 1 worked in reverse,
 
 Build on these (they worked after costs):
 - downside_volume_correlation_premium: EMA(Corr(volume, Min(returns, 0), 40) - Corr(volume, Max(returns, 0), 40), 20)  ->  +2.6%/yr after costs, beats the average in 50% of weeks (t 3.5)
-- close_vwap_convergence: -EMA(Mean(Abs(close - vwap) / (high - low), 40), 20)  ->  +2.2%/yr after costs, beats the average in 51% of weeks (t 2.4)
-- intraday_to_true_range_share: EMA(Mean((high - low) / (Max(high, Ref(close, 1)) - Min(low, Ref(close, 1))), 40), 20)  ->  +2.1%/yr after costs, beats the average in 52% of weeks (t 2.2)
-- stable_trend_momentum: EMA(CsRank(Mean(returns, 40) / Std(returns, 40)) - CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)  ->  +1.0%/yr after costs, beats the average in 53% of weeks (t 3.6)
+- close_vwap_convergence: -EMA(Mean(Abs(close - vwap) / (high - low), 40), 20)  ->  +1.7%/yr after costs, beats the average in 51% of weeks (t 2.4)
+- intraday_to_true_range_share: EMA(Mean((high - low) / (Max(high, Ref(close, 1)) - Min(low, Ref(close, 1))), 40), 20)  ->  +1.6%/yr after costs, beats the average in 52% of weeks (t 2.1)
 - range_stability_60: -EMA(CsRank(Std((high - low) / close, 60) / Mean((high - low) / close, 60)), 20)  ->  +0.9%/yr after costs, beats the average in 50% of weeks (t 3.9)
+- stable_trend_momentum: EMA(CsRank(Mean(returns, 40) / Std(returns, 40)) - CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)  ->  +0.0%/yr after costs, beats the average in 52% of weeks (t 3.6)
 
 Worked in REVERSE (the stocks they liked did worse):
 - vwap_range_position_stability: EMA(Mean((vwap - low) / (high - low), 40) / Std((vwap - low) / (high - low), 40), 20)  ->  works in reverse: the stocks it likes do worse (t -2.7); the opposite idea may be right

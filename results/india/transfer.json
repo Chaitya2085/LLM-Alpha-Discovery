@@ -3,15 +3,15 @@
   "ic_correlation": 0.695,
   "ic_rank_correlation": 0.684,
   "strong_in_china": 131,
-  "strong_in_china_same_sign_in_india": 111,
-  "strong_in_china_also_strong_in_india": 78,
+  "strong_in_china_same_sign_in_india": 110,
+  "strong_in_china_also_strong_in_india": 77,
   "strong_in_india": 124,
-  "strong_in_both": 78,
+  "strong_in_both": 77,
   "top_travellers": [
     {
       "name": "vol_adi_imbalance",
       "rank_ic_china": -0.0349,
-      "rank_ic_india": -0.0266
+      "rank_ic_india": -0.0267
     },
     {
       "name": "rev_sign_range",

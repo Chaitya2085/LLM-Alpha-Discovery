@@ -151,6 +151,7 @@ def test_corporate_action_rules():
     cols["SPLIT"] = stock(30, 0.105, 0.10, 34)        # 1:10 split; new ISIN shows up 4 days later
     cols["DEMERGE"] = stock(30, 0.45, 0.45)           # demerger: off any ratio -> return-neutral
     cols["CRASH"] = stock(30, 0.5, 0.5)               # looks like a 1:1 bonus, but listed as 'keep'
+    cols["REALCRASH"] = stock(30, 0.45, 0.95)         # opened near yesterday's close, then fell 55%
     mk = lambda i: pd.DataFrame({k: v[i] for k, v in cols.items()}, index=days)  # noqa: E731
     close, open_, isin = mk(0), mk(1), mk(2)
     vol = pd.DataFrame(1e5, index=days, columns=close.columns)
@@ -163,18 +164,18 @@ def test_corporate_action_rules():
     assert got["SPLIT"][:2] == ("split", 10.0) and got["SPLIT"][2]
     assert got["DEMERGE"][0] == "other" and got["DEMERGE"][2]
     assert not got["CRASH"][2]
+    assert got["REALCRASH"][:1] == ("kept",) and not got["REALCRASH"][2]
     adj = close * factor
     assert abs(adj["SPLIT"].iloc[29] / adj["SPLIT"].iloc[30] - 1 / 1.05) < 1e-9   # +5% left after 1:10
     assert adj["DEMERGE"].pct_change().abs().max() < 1e-4
     assert adj["BADDAY"].pct_change().min() < -0.3 and adj["CRASH"].pct_change().min() < -0.45
+    assert adj["REALCRASH"].pct_change().min() < -0.5
 
 
 def test_build_adjusts_splits_and_builds_point_in_time_universe():
     build_india.RAW, build_india.OUT = RAW, OUT
     crash_sym, crash_day = GT["crash"]
-    build_india.OVERRIDES = TMP / "overrides.csv"
-    build_india.OVERRIDES.write_text("# test\nsymbol,date,action,ratio,note\n"
-                                     f"{crash_sym},{crash_day},keep,,genuine crash\n")
+    build_india.OVERRIDES = TMP / "no_overrides.csv"      # the crash must be kept without any help
     sys.argv = ["build_india.py", "--universe", "25", "--start", str(START)]
     build_india.main()
     px = pd.read_parquet(OUT / "prices.parquet")
@@ -215,7 +216,7 @@ def test_build_adjusts_splits_and_builds_point_in_time_universe():
     assert q["splits_adjusted"] == want["split"] >= 1, (q, in_uni)
     assert q["bonuses_adjusted"] == want["bonus"] >= 1, (q, in_uni)
     assert q["other_adjusted"] == want["demerger"], (q, in_uni)
-    assert ev[ev["symbol"] == crash_sym]["note"].str.contains("override").any()
+    assert (ev[ev["symbol"] == crash_sym]["kind"] == "kept").any()
     assert crash_sym not in set(done["symbol"])
     assert GT["etf"] not in set(px.index.get_level_values("code")), "ETFs must be dropped"
 

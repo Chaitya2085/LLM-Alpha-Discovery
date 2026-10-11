@@ -5,16 +5,16 @@ Scoreboard: 91 proposed; 0 worked after costs (0 strongly), 7 worked in reverse,
 Worked in REVERSE (the stocks they liked did worse):
 - range_gap_cross10: Mean((high - low) / close, 5) * Sign(open - Ref(close, 1))  ->  works in reverse: the stocks it likes do worse (t -3.9); the opposite idea may be right
 - pv_vol_price_gap: (open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1)  ->  works in reverse: the stocks it likes do worse (t -3.7); the opposite idea may be right
-- short_term_reversal_gap: Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)  ->  works in reverse: the stocks it likes do worse (t -3.6); the opposite idea may be right
+- short_term_reversal_gap: Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)  ->  works in reverse: the stocks it likes do worse (t -3.5); the opposite idea may be right
 - rev_oscillator_cross: Sign(Mean(returns, 5) - Mean(returns, 15)) * (Mean(returns, 5) - Mean(returns, 15))  ->  works in reverse: the stocks it likes do worse (t -3.1); the opposite idea may be right
-- corr_ret_vol15_volstd: Corr(volume, returns, 15) * Std(volume, 15)  ->  works in reverse: the stocks it likes do worse (t -2.7); the opposite idea may be right
+- corr_ret_vol15_volstd: Corr(volume, returns, 15) * Std(volume, 15)  ->  works in reverse: the stocks it likes do worse (t -2.5); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- momentum_decay_high_low_range: Decay(high - low, 7) / Mean(high - low, 30) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  before costs +4.6%/yr, after costs -2.1%/yr; 52% of the portfolio is replaced each week
-- reversal_low_vol_spike: -Sign(Std(returns, 5)) * (Mean(volume, 3) / Mean(volume, 15) - 1)  ->  before costs +3.2%/yr, after costs -6.2%/yr; 72% of the portfolio is replaced each week
-- volume_price_correlation_decay: Decay(Corr(volume, close, 15), 5) * CsZscore(volume)  ->  before costs +2.2%/yr, after costs -4.3%/yr; 50% of the portfolio is replaced each week
+- momentum_decay_high_low_range: Decay(high - low, 7) / Mean(high - low, 30) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  before costs +4.9%/yr, after costs -1.9%/yr; 52% of the portfolio is replaced each week
+- volume_price_correlation_decay: Decay(Corr(volume, close, 15), 5) * CsZscore(volume)  ->  before costs +2.9%/yr, after costs -3.6%/yr; 50% of the portfolio is replaced each week
+- reversal_low_vol_spike: -Sign(Std(returns, 5)) * (Mean(volume, 3) / Mean(volume, 15) - 1)  ->  before costs +2.4%/yr, after costs -6.9%/yr; 72% of the portfolio is replaced each week
 - intraday_body_ratio: Abs(close - open) / (high - low + 1e-06) * CsRank(open)  ->  before costs +1.7%/yr, after costs -5.8%/yr; 57% of the portfolio is replaced each week
-- rev_gap_open_close: Pct(open, 1) - Pct(close, 1)  ->  before costs -4.1%/yr, after costs -14.4%/yr; 79% of the portfolio is replaced each week
+- rev_gap_open_close: Pct(open, 1) - Pct(close, 1)  ->  before costs -4.0%/yr, after costs -14.3%/yr; 79% of the portfolio is replaced each week
 
 Too similar to something known:
 - slope_ma20_vol_std: Slope(Mean(close, 20), 20) / Std(close, 20)  ->  ranks stocks almost like BETA30 (corr 0.76)

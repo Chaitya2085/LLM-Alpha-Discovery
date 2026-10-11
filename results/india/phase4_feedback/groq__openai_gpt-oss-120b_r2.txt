@@ -3,13 +3,13 @@ Results of your previous round. Each factor was tested the way it will be used: 
 Scoreboard: 20 proposed; 1 worked after costs (0 strongly), 1 worked in reverse, 1 too costly, 4 copies, 11 no reliable signal, 2 broken or duplicate.
 
 Build on these (they worked after costs):
-- range_position_trend_slow: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))  ->  +4.9%/yr after costs, beats the average in 51% of weeks (t 2.6)
+- range_position_trend_slow: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))  ->  +4.7%/yr after costs, beats the average in 51% of weeks (t 2.6)
 
 Worked in REVERSE (the stocks they liked did worse):
-- volume_ema_cross_slow: Mean(EMA(volume, 15) - EMA(volume, 45), 20) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 20))  ->  works in reverse: the stocks it likes do worse (t -3.1); the opposite idea may be right
+- volume_ema_cross_slow: Mean(EMA(volume, 15) - EMA(volume, 45), 20) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 20))  ->  works in reverse: the stocks it likes do worse (t -3.0); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- reverse_ema_volume_gap: -EMA((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 20) * CsRank(volume)  ->  before costs +0.0%/yr, after costs -5.4%/yr; 42% of the portfolio is replaced each week
+- reverse_ema_volume_gap: -EMA((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 20) * CsRank(volume)  ->  before costs -0.2%/yr, after costs -5.6%/yr; 41% of the portfolio is replaced each week
 
 Too similar to something known:
 - body_size_cross_section: Mean(Abs(close - open) / (high - low + 1e-06), 25) * CsZscore(open)  ->  ranks stocks almost like intraday_body_slow (corr 0.88)

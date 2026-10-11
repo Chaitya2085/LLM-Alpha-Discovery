@@ -1,14 +1,15 @@
 Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
 
-Scoreboard: 30 proposed; 0 worked after costs (0 strongly), 1 worked in reverse, 3 too costly, 11 copies, 14 no reliable signal, 1 broken or duplicate.
+Scoreboard: 30 proposed; 0 worked after costs (0 strongly), 1 worked in reverse, 4 too costly, 11 copies, 13 no reliable signal, 1 broken or duplicate.
 
 Worked in REVERSE (the stocks they liked did worse):
 - volume_decay_pullback: Decay(Mean(volume, 5) - Mean(volume, 20), 12) / Mean(volume, 20) * Sign(Mean(close, 10) - Ref(Mean(close, 10), 5))  ->  works in reverse: the stocks it likes do worse (t -2.2); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- vwap_residual_trend: Resi(vwap, 20) * Sign(Mean(volume, 10) - Mean(volume, 30))  ->  before costs +4.4%/yr, after costs -4.2%/yr; 66% of the portfolio is replaced each week
-- volume_ema_cross_rev: Mean(EMA(volume, 45) - EMA(volume, 15), 20) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 20))  ->  before costs +2.7%/yr, after costs -0.8%/yr; 26% of the portfolio is replaced each week
-- std_mean_return_ratio: Std(returns, 20) / Mean(Abs(returns), 20) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  before costs +1.3%/yr, after costs -3.3%/yr; 35% of the portfolio is replaced each week
+- vwap_residual_trend: Resi(vwap, 20) * Sign(Mean(volume, 10) - Mean(volume, 30))  ->  before costs +5.0%/yr, after costs -3.6%/yr; 66% of the portfolio is replaced each week
+- volume_ema_cross_rev: Mean(EMA(volume, 45) - EMA(volume, 15), 20) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 20))  ->  before costs +2.3%/yr, after costs -1.2%/yr; 26% of the portfolio is replaced each week
+- std_mean_return_ratio: Std(returns, 20) / Mean(Abs(returns), 20) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  before costs +1.8%/yr, after costs -2.7%/yr; 35% of the portfolio is replaced each week
+- price_vol_correlation_roll: Corr(close, Log(volume + 1), 40) * CsZscore(Mean(volume, 20))  ->  before costs -3.6%/yr, after costs -7.0%/yr; 26% of the portfolio is replaced each week
 
 Too similar to something known:
 - ema_price_range_pos: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(EMA(close, 20) - EMA(close, 60))  ->  ranks stocks almost like range_position_trend_slow (corr 0.76)
@@ -20,7 +21,7 @@ Too similar to something known:
 Broken (fix these mistakes):
 - vol_updown_ratio_slow: Mean((Sum(Sign(Delta(close, 1)), 20) + 20) / 40 * (Mean(volume, 5) - Mean(volume, 20)) / Mean(volume, 20), 15) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))  ->  invalid expression: too deeply nested: depth 10 (max 8)
 
-No reliable signal: trend_resi_vol_decay, range_width_momentum, updown_days_idx, price_vol_corr_slow, vol_decay_momentum, skew_volatility_shift, volume_kurtosis_decay, price_resi_idxmin, corr_ret_vol_decay, price_vol_correlation_roll, low_volatility_breakout, price_gap_decay_uptrend, ...
+No reliable signal: trend_resi_vol_decay, range_width_momentum, updown_days_idx, price_vol_corr_slow, vol_decay_momentum, skew_volatility_shift, volume_kurtosis_decay, price_resi_idxmin, corr_ret_vol_decay, low_volatility_breakout, price_gap_decay_uptrend, idxmax_min_gap, ...
 
 Lessons:
 - Several ideas restated known factors; look for different information.

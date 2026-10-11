@@ -1,16 +1,19 @@
 Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
 
-Scoreboard: 30 proposed; 7 worked after costs (0 strongly), 1 worked in reverse, 0 too costly, 16 copies, 5 no reliable signal, 1 broken or duplicate.
+Scoreboard: 30 proposed; 6 worked after costs (0 strongly), 1 worked in reverse, 1 too costly, 16 copies, 5 no reliable signal, 1 broken or duplicate.
 
 Build on these (they worked after costs):
 - lottery_max_penalty: -EMA(CsRank(TsMax(returns, 20)), 15)  ->  +4.0%/yr after costs, beats the average in 53% of weeks (t 3.8)
-- smoothed_shadow_asymmetry: EMA(Mean((Min(open, close) - low - (high - Max(open, close))) / (high - low), 40), 20)  ->  +3.6%/yr after costs, beats the average in 53% of weeks (t 3.6)
-- volume_anti_persistence: -EMA(Corr(volume, Ref(volume, 1), 40), 15)  ->  +3.4%/yr after costs, beats the average in 51% of weeks (t 2.9)
-- intraday_to_interday_vol_ratio: EMA(Mean((high - low) / close, 30) / Std(returns, 30), 10)  ->  +2.6%/yr after costs, beats the average in 50% of weeks (t 3.6)
-- tail_risk_skew_preference: -EMA(CsRank(Kurt(returns, 60)) - CsRank(Skew(returns, 60)), 15)  ->  +2.2%/yr after costs, beats the average in 51% of weeks (t 2.6)
+- smoothed_shadow_asymmetry: EMA(Mean((Min(open, close) - low - (high - Max(open, close))) / (high - low), 40), 20)  ->  +3.7%/yr after costs, beats the average in 53% of weeks (t 3.6)
+- volume_anti_persistence: -EMA(Corr(volume, Ref(volume, 1), 40), 15)  ->  +2.7%/yr after costs, beats the average in 51% of weeks (t 2.9)
+- tail_risk_skew_preference: -EMA(CsRank(Kurt(returns, 60)) - CsRank(Skew(returns, 60)), 15)  ->  +2.0%/yr after costs, beats the average in 50% of weeks (t 2.6)
+- intraday_to_interday_vol_ratio: EMA(Mean((high - low) / close, 30) / Std(returns, 30), 10)  ->  +1.9%/yr after costs, beats the average in 50% of weeks (t 3.6)
 
 Worked in REVERSE (the stocks they liked did worse):
 - overnight_drift_persistence: EMA(CsRank(Mean((open - Ref(close, 1)) / Ref(close, 1), 20)), 15)  ->  works in reverse: the stocks it likes do worse (t -2.1); the opposite idea may be right
+
+Real signal but too costly (the portfolio changes too much each week):
+- volatility_of_volatility_penalty: -EMA(Std(Std(returns, 10), 40) / Mean(Std(returns, 10), 40), 15)  ->  before costs +2.3%/yr, after costs -0.1%/yr; 18% of the portfolio is replaced each week
 
 Too similar to something known:
 - low_downside_volatility: -EMA(CsRank(Std(Min(returns, 0), 40)), 20)  ->  ranks stocks almost like low_volatility_rank (corr 0.86)

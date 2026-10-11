@@ -12,29 +12,29 @@
     200
   ],
   "splits_adjusted": 123,
-  "bonuses_adjusted": 142,
-  "other_adjusted": 27,
-  "corporate_action_adjustments": 292,
+  "bonuses_adjusted": 161,
+  "other_adjusted": 47,
+  "corporate_action_adjustments": 332,
   "member_days_missing_close_pct": 0.347,
   "member_days_locked_up_pct": 0.029,
   "member_days_locked_down_pct": 0.039,
-  "member_days_abs_return_gt_25pct": 104,
+  "member_days_abs_return_gt_25pct": 97,
   "biggest_member_day_moves": [
     "2019-06-20 JETAIRWAYS +89.9%",
+    "2018-09-28 INFIBEAM -70.8%",
     "2020-03-17 YESBANK +58.1%",
     "2018-05-17 RCOM +56.2%",
     "2020-03-06 YESBANK -56.1%",
     "2015-09-11 AMTEKAUTO +53.9%",
+    "2017-05-25 SINTEX +49.0%",
     "2017-10-25 PNB +46.2%",
     "2020-03-16 YESBANK +45.2%",
-    "2020-03-26 INDUSINDBK +44.7%",
-    "2018-05-04 PCJEWELLER +43.8%",
-    "2015-06-26 MASTEK +42.6%"
+    "2020-03-26 INDUSINDBK +44.7%"
   ],
   "benchmark": "Nifty 200",
   "benchmark_first_last": [
     3162.9,
     13062.85
   ],
-  "seconds": 41
+  "seconds": 40
 }
