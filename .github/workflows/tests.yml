@@ -23,3 +23,5 @@ jobs:
         run: python tests/test_llm.py
       - name: India pipeline tests
         run: python tests/test_india.py
+      - name: Phase 4 tests
+        run: python tests/test_phase4.py

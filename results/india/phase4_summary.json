@@ -1,0 +1,193 @@
+{
+  "market": "india",
+  "judging": "weekly, long-only top fifth, after costs, vs equal-weight universe",
+  "period": [
+    "2014-07-01",
+    "2020-12-22"
+  ],
+  "researchers": 3,
+  "factors_proposed": 439,
+  "per_researcher": [
+    {
+      "researcher": "gemini: gemini-3.8-flash",
+      "round0_useful_pct": 8.333333333333334,
+      "feedback_first_useful_pct": 23.333333333333332,
+      "feedback_last_useful_pct": 16.666666666666668,
+      "feedback_mean_useful_pct": 17.777777777777775,
+      "feedback_rounds": 3,
+      "feedback_backwards_pct": 3.3333333333333335,
+      "control_first_useful_pct": 0.0,
+      "control_last_useful_pct": 6.666666666666667,
+      "control_mean_useful_pct": 2.2222222222222223,
+      "control_rounds": 3,
+      "control_backwards_pct": 3.3333333333333335
+    },
+    {
+      "researcher": "groq: openai/gpt-oss-120b",
+      "round0_useful_pct": 0.0,
+      "feedback_first_useful_pct": 3.3333333333333335,
+      "feedback_last_useful_pct": 0.0,
+      "feedback_mean_useful_pct": 2.777777777777778,
+      "feedback_rounds": 3,
+      "feedback_backwards_pct": 3.8888888888888893,
+      "control_first_useful_pct": 0.0,
+      "control_last_useful_pct": 0.0,
+      "control_mean_useful_pct": 0.0,
+      "control_rounds": 3,
+      "control_backwards_pct": 11.302681992337165
+    },
+    {
+      "researcher": "openrouter: auto-free",
+      "round0_useful_pct": 0.0,
+      "feedback_first_useful_pct": 18.75,
+      "feedback_last_useful_pct": 6.666666666666667,
+      "feedback_mean_useful_pct": 10.694444444444445,
+      "feedback_rounds": 3,
+      "feedback_backwards_pct": 4.444444444444445,
+      "control_first_useful_pct": 0.0,
+      "control_last_useful_pct": 0.0,
+      "control_mean_useful_pct": 0.0,
+      "control_rounds": 3,
+      "control_backwards_pct": 6.666666666666667
+    }
+  ],
+  "best": [
+    {
+      "id": "F0429",
+      "name": "vol_surge_flip",
+      "researcher": "openrouter: auto-free",
+      "arm": "feedback",
+      "round": 1,
+      "expression": "-EMA(volume / Mean(volume, 20) * CsRank(volume), 10)",
+      "net_excess_ann": 0.0526,
+      "hit_rate": 0.516,
+      "weekly_ic_t": 3.49,
+      "turnover": 0.248,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0356",
+      "name": "range_position_trend_slow",
+      "researcher": "groq: openai/gpt-oss-120b",
+      "arm": "feedback",
+      "round": 2,
+      "expression": "Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))",
+      "net_excess_ann": 0.0488,
+      "hit_rate": 0.506,
+      "weekly_ic_t": 2.58,
+      "turnover": 0.23,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0267",
+      "name": "vwap_intraday_range_position",
+      "researcher": "gemini: gemini-3.8-flash",
+      "arm": "feedback",
+      "round": 2,
+      "expression": "EMA(Mean((vwap - low) / (high - low), 40), 20)",
+      "net_excess_ann": 0.0477,
+      "hit_rate": 0.537,
+      "weekly_ic_t": 2.02,
+      "turnover": 0.136,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0354",
+      "name": "price_range_position_slow",
+      "researcher": "groq: openai/gpt-oss-120b",
+      "arm": "feedback",
+      "round": 1,
+      "expression": "Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 15) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))",
+      "net_excess_ann": 0.0441,
+      "hit_rate": 0.516,
+      "weekly_ic_t": 3.65,
+      "turnover": 0.229,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0609",
+      "name": "vwap_range_position",
+      "researcher": "gemini: gemini-3.8-flash",
+      "arm": "control",
+      "round": 3,
+      "expression": "Decay(Mean((vwap - low) / (high - low + 1e-06), 20), 10)",
+      "net_excess_ann": 0.0411,
+      "hit_rate": 0.569,
+      "weekly_ic_t": 2.08,
+      "turnover": 0.274,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0528",
+      "name": "lottery_max_penalty",
+      "researcher": "gemini: gemini-3.8-flash",
+      "arm": "feedback",
+      "round": 1,
+      "expression": "-EMA(CsRank(TsMax(returns, 20)), 15)",
+      "net_excess_ann": 0.0402,
+      "hit_rate": 0.531,
+      "weekly_ic_t": 3.83,
+      "turnover": 0.193,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0276",
+      "name": "intraday_to_overnight_gap_ratio",
+      "researcher": "gemini: gemini-3.8-flash",
+      "arm": "feedback",
+      "round": 2,
+      "expression": "EMA(Mean((high - low) / Abs(open - Ref(close, 1)), 30), 15)",
+      "net_excess_ann": 0.04,
+      "hit_rate": 0.534,
+      "weekly_ic_t": 3.07,
+      "turnover": 0.101,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0261",
+      "name": "smoothed_shadow_asymmetry",
+      "researcher": "gemini: gemini-3.8-flash",
+      "arm": "feedback",
+      "round": 1,
+      "expression": "EMA(Mean((Min(open, close) - low - (high - Max(open, close))) / (high - low), 40), 20)",
+      "net_excess_ann": 0.0363,
+      "hit_rate": 0.528,
+      "weekly_ic_t": 3.64,
+      "turnover": 0.123,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0253",
+      "name": "volume_anti_persistence",
+      "researcher": "gemini: gemini-3.8-flash",
+      "arm": "feedback",
+      "round": 1,
+      "expression": "-EMA(Corr(volume, Ref(volume, 1), 40), 15)",
+      "net_excess_ann": 0.0336,
+      "hit_rate": 0.512,
+      "weekly_ic_t": 2.88,
+      "turnover": 0.172,
+      "verdict": "keep"
+    },
+    {
+      "id": "F0542",
+      "name": "range_stability",
+      "researcher": "gemini: gemini-3.8-flash",
+      "arm": "feedback",
+      "round": 2,
+      "expression": "-EMA(CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)",
+      "net_excess_ann": 0.0291,
+      "hit_rate": 0.512,
+      "weekly_ic_t": 3.77,
+      "turnover": 0.196,
+      "verdict": "keep"
+    }
+  ],
+  "useful_total": 25,
+  "useful_by_arm": {
+    "feedback": 23,
+    "control": 2
+  },
+  "useful_pct_feedback": 10.4,
+  "useful_pct_control": 0.7
+}

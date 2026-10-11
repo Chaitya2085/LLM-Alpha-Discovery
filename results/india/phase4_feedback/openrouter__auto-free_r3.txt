@@ -1,0 +1,29 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 15 proposed; 1 worked after costs (0 strongly), 2 worked in reverse, 2 too costly, 6 copies, 3 no reliable signal, 1 broken or duplicate.
+
+Build on these (they worked after costs):
+- price_vol_dispersion: -EMA(Std(close / vwap, 20) * Mean(volume, 20) / (volume + 1e-06), 15)  ->  +0.7%/yr after costs, beats the average in 48% of weeks (t 3.0)
+
+Worked in REVERSE (the stocks they liked did worse):
+- vol_surprise_persistence: EMA(Corr(volume / Mean(volume, 20), Ref(volume / Mean(volume, 20), 5), 60), 15)  ->  works in reverse: the stocks it likes do worse (t -3.3); the opposite idea may be right
+- vol_clustering_decay: EMA(Decay(Abs(volume - Mean(volume, 20)) / (Std(volume, 20) + 1e-06), 10), 15)  ->  works in reverse: the stocks it likes do worse (t -2.1); the opposite idea may be right
+
+Real signal but too costly (the portfolio changes too much each week):
+- vol_trend_consistency: EMA(1 - Abs(Slope(volume, 60)) / (Std(volume, 60) + 1e-06), 15)  ->  before costs +2.6%/yr, after costs -1.7%/yr; 33% of the portfolio is replaced each week
+- vol_vol_regime: -EMA(Abs(Std(volume, 20) / Mean(volume, 20) - Std(volume, 60) / Mean(volume, 60)) * Std(returns, 20), 20)  ->  before costs +1.8%/yr, after costs -0.8%/yr; 20% of the portfolio is replaced each week
+
+Too similar to something known:
+- vol_weekly_meanrev: -EMA(Corr(volume, Ref(volume, 5), 60), 20)  ->  ranks stocks almost like vol_persistence_weekly (corr 0.99)
+- vol_weighted_momentum: EMA(Sum(returns * volume, 60) / Sum(volume, 60), 20)  ->  ranks stocks almost like CORD60 (corr 0.75)
+- intraday_vol_efficiency: EMA((close - open) / (high - low + 1e-06) * Log(volume / Mean(volume, 20) + 1), 15)  ->  ranks stocks almost like RSV20 (corr 0.77)
+- volume_price_divergence: -EMA(Corr(close, volume, 20) * TsRank(close, 60), 15)  ->  ranks stocks almost like CORR30 (corr 0.78)
+- turnover_momentum: EMA(Pct(close, 20) * Std(volume, 20) / (Mean(volume, 20) + 1e-06), 15)  ->  ranks stocks almost like BETA30 (corr 0.93)
+
+Broken (fix these mistakes):
+- gap_volume_confirm: EMA(Sign(open - Ref(close, 1)) * Log(volume / Mean(volume, 20) + 1) * (close - open) / (high - low + 1e-6), 10)  ->  invalid expression: too deeply nested: depth 9 (max 8)
+
+No reliable signal: vol_monthly_persist, high_low_volume_skew, vol_lead_lag_price
+
+Lessons:
+- Several ideas restated known factors; look for different information.

@@ -1,0 +1,30 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 30 proposed; 5 worked after costs (0 strongly), 1 worked in reverse, 0 too costly, 14 copies, 7 no reliable signal, 3 broken or duplicate.
+
+Build on these (they worked after costs):
+- downside_volume_correlation_premium: EMA(Corr(volume, Min(returns, 0), 40) - Corr(volume, Max(returns, 0), 40), 20)  ->  +2.6%/yr after costs, beats the average in 50% of weeks (t 3.5)
+- close_vwap_convergence: -EMA(Mean(Abs(close - vwap) / (high - low), 40), 20)  ->  +2.2%/yr after costs, beats the average in 51% of weeks (t 2.4)
+- intraday_to_true_range_share: EMA(Mean((high - low) / (Max(high, Ref(close, 1)) - Min(low, Ref(close, 1))), 40), 20)  ->  +2.1%/yr after costs, beats the average in 52% of weeks (t 2.2)
+- stable_trend_momentum: EMA(CsRank(Mean(returns, 40) / Std(returns, 40)) - CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)  ->  +1.0%/yr after costs, beats the average in 53% of weeks (t 3.6)
+- range_stability_60: -EMA(CsRank(Std((high - low) / close, 60) / Mean((high - low) / close, 60)), 20)  ->  +0.9%/yr after costs, beats the average in 50% of weeks (t 3.9)
+
+Worked in REVERSE (the stocks they liked did worse):
+- vwap_range_position_stability: EMA(Mean((vwap - low) / (high - low), 40) / Std((vwap - low) / (high - low), 40), 20)  ->  works in reverse: the stocks it likes do worse (t -2.7); the opposite idea may be right
+
+Too similar to something known:
+- vwap_to_open_range_position: EMA(Mean((vwap - open) / (high - low), 40), 20)  ->  ranks stocks almost like vwap_intraday_range_position (corr 0.71)
+- vwap_intraday_asymmetry_ratio: EMA(Mean((vwap - low) / (high - vwap), 30), 15)  ->  ranks stocks almost like vwap_intraday_range_position (corr 0.83)
+- volume_confirmed_close_above_vwap: EMA(Mean((close - vwap) / (high - low) * volume / Mean(volume, 40), 40), 20)  ->  ranks stocks almost like close_above_vwap_spread (corr 0.82)
+- intraday_return_volume_correlation: EMA(Corr((close - open) / open, volume, 40), 20)  ->  ranks stocks almost like CORD60 (corr 0.70)
+- lower_shadow_to_gap_ratio: EMA(Mean((Min(open, close) - low) / Abs(open - Ref(close, 1)), 30), 15)  ->  ranks stocks almost like intraday_to_overnight_gap_ratio (corr 0.87)
+
+Broken (fix these mistakes):
+- intraday_gap_volume_buffered_ratio: EMA(Mean((high - low) / Abs(open - Ref(close, 1)) * volume / Mean(volume, 30), 30), 15)  ->  too deeply nested: depth 9 (max 8)
+- intraday_body_stability: -EMA(CsRank(Std(Abs(close - open) / open, 30) / Mean(Abs(close - open) / open, 30)), 15)  ->  invalid expression: too deeply nested: depth 9 (max 8)
+
+No reliable signal: range_return_positive_correlation, vwap_above_open_frequency, volume_stability, dollar_volume_stability, daily_return_autocorrelation, volume_trend, intraday_to_total_efficiency
+
+Lessons:
+- Your volatility ideas worked best; push further in that direction.
+- Several ideas restated known factors; look for different information.

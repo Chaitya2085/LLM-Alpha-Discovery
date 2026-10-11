@@ -1,0 +1,27 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 30 proposed; 7 worked after costs (0 strongly), 1 worked in reverse, 0 too costly, 16 copies, 5 no reliable signal, 1 broken or duplicate.
+
+Build on these (they worked after costs):
+- lottery_max_penalty: -EMA(CsRank(TsMax(returns, 20)), 15)  ->  +4.0%/yr after costs, beats the average in 53% of weeks (t 3.8)
+- smoothed_shadow_asymmetry: EMA(Mean((Min(open, close) - low - (high - Max(open, close))) / (high - low), 40), 20)  ->  +3.6%/yr after costs, beats the average in 53% of weeks (t 3.6)
+- volume_anti_persistence: -EMA(Corr(volume, Ref(volume, 1), 40), 15)  ->  +3.4%/yr after costs, beats the average in 51% of weeks (t 2.9)
+- intraday_to_interday_vol_ratio: EMA(Mean((high - low) / close, 30) / Std(returns, 30), 10)  ->  +2.6%/yr after costs, beats the average in 50% of weeks (t 3.6)
+- tail_risk_skew_preference: -EMA(CsRank(Kurt(returns, 60)) - CsRank(Skew(returns, 60)), 15)  ->  +2.2%/yr after costs, beats the average in 51% of weeks (t 2.6)
+
+Worked in REVERSE (the stocks they liked did worse):
+- overnight_drift_persistence: EMA(CsRank(Mean((open - Ref(close, 1)) / Ref(close, 1), 20)), 15)  ->  works in reverse: the stocks it likes do worse (t -2.1); the opposite idea may be right
+
+Too similar to something known:
+- low_downside_volatility: -EMA(CsRank(Std(Min(returns, 0), 40)), 20)  ->  ranks stocks almost like low_volatility_rank (corr 0.86)
+- composite_low_volatility_rank: -EMA(CsRank(Std(returns, 60)) + CsRank(Mean((high - low) / close, 60)), 20)  ->  ranks stocks almost like low_volatility_rank (corr 0.98)
+- quiet_accumulation_differential: EMA(CsRank(returns) - CsRank(volume), 20)  ->  ranks stocks almost like quiet_accumulation_spread (corr 0.99)
+- stealth_accumulation_trend: EMA(CsRank(Pct(close, 20)) * (1 - CsRank(Mean(volume, 20))), 15)  ->  ranks stocks almost like quiet_accumulation_differential (corr 0.83)
+- ranked_range_volume_penalty: -EMA(CsRank(Corr((high - low) / close, volume, 40)), 15)  ->  ranks stocks almost like range_volume_correlation_penalty (corr 0.71)
+
+No reliable signal: liquidity_depth_rank, low_overnight_jump_ratio, directional_volume_conviction, range_return_expansion_alignment, variance_ratio_persistence
+
+Lessons:
+- Your intraday ideas mostly worked in reverse here; consider the opposite effect.
+- Your volatility ideas worked best; push further in that direction.
+- Several ideas restated known factors; look for different information.

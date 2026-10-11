@@ -57,3 +57,5 @@ def save(fig, name: str, tight: bool = True) -> Path:
     plt.close(fig)
     print(f"    wrote {out.relative_to(ROOT)}")
     return out
+VIOLET = "#8b5fd6"
+SERIES = [BLUE, ORANGE, AQUA, VIOLET]   # categorical order (validated for colour-blind separation)

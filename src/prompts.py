@@ -71,3 +71,32 @@ def user_prompt(n: int, batch: int, existing: list[str] | None = None) -> str:
         shown = "\n".join(f"- {e}" for e in existing[-40:])
         msg += f"\n\nThese expressions already exist; propose different ideas:\n{shown}"
     return msg
+
+
+# ---------------------------------------------------------------- Phase 4: feedback loop
+PROMPT_VERSION_P4 = "p4-v1"
+
+SYSTEM_WEEKLY = SYSTEM.replace(
+    "- Each day after the close, stocks are ranked by the factor; HIGHER values = more\n"
+    "  attractive. The top-ranked stocks are bought at the next open.",
+    "- Once a week after the close, stocks are ranked by the factor; HIGHER values = more\n"
+    "  attractive. The top fifth is bought at the next open and held for 5 trading days\n"
+    "  (long-only, equal weight), then the ranking is redone.")
+assert SYSTEM_WEEKLY != SYSTEM, "weekly system prompt must differ from the daily one"
+
+
+def round_prompt(n: int, rnd: int, feedback: str | None, existing: list[str] | None = None) -> str:
+    """Phase 4 prompt for one round. feedback=None gives the no-feedback control arm."""
+    cats = "\n".join(f"- {k}: {v}" for k, v in CATEGORIES.items())
+    msg = f"Round {rnd}. Propose {n} new alpha factors.\n"
+    if feedback:
+        msg += ("\nUse the results of your previous round below: build on what worked, fix or "
+                "flip what didn't, and avoid repeating failed ideas.\n\n" + feedback + "\n\n")
+    else:
+        msg += f"Spread them roughly evenly across these categories:\n{cats}\n\n"
+    msg += ("Check every expression against the language rules (operator names, argument counts, "
+            "integer windows 1-60).")
+    if existing:
+        shown = "\n".join(f"- {e}" for e in existing[-40:])
+        msg += f"\n\nThese expressions already exist; don't repeat them:\n{shown}"
+    return msg

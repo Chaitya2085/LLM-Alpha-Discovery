@@ -1,0 +1,26 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 20 proposed; 1 worked after costs (0 strongly), 1 worked in reverse, 1 too costly, 4 copies, 11 no reliable signal, 2 broken or duplicate.
+
+Build on these (they worked after costs):
+- range_position_trend_slow: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))  ->  +4.9%/yr after costs, beats the average in 51% of weeks (t 2.6)
+
+Worked in REVERSE (the stocks they liked did worse):
+- volume_ema_cross_slow: Mean(EMA(volume, 15) - EMA(volume, 45), 20) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 20))  ->  works in reverse: the stocks it likes do worse (t -3.1); the opposite idea may be right
+
+Real signal but too costly (the portfolio changes too much each week):
+- reverse_ema_volume_gap: -EMA((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 20) * CsRank(volume)  ->  before costs +0.0%/yr, after costs -5.4%/yr; 42% of the portfolio is replaced each week
+
+Too similar to something known:
+- body_size_cross_section: Mean(Abs(close - open) / (high - low + 1e-06), 25) * CsZscore(open)  ->  ranks stocks almost like intraday_body_slow (corr 0.88)
+- decay_updown_days_ratio: Decay((Sum(Sign(Delta(close, 1)), 20) + 20) / 40, 10) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))  ->  ranks stocks almost like range_position_trend_slow (corr 0.80)
+- price_volatility_decay: Decay(Std(returns, 20) * Log(volume + 1), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))  ->  ranks stocks almost like BETA60 (corr 0.75)
+- price_gap_vs_vol_decay: Decay((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 15) * CsRank(volume)  ->  ranks stocks almost like ema_volume_price_gap (corr 0.95)
+
+Broken (fix these mistakes):
+- smooth_updown_volume_gap: Mean((Sum(Sign(Delta(close,1)),10)/10) * (Mean(volume,5)-Mean(volume,20))/Mean(volume,20), 15) * Sign(Mean(close,30)-Ref(Mean(close,30),30))  ->  invalid expression: too deeply nested: depth 9 (max 8)
+
+No reliable signal: smooth_gap_vol_ratio, decay_range_width, trend_residual_vol_smooth, slow_corr_vol_price, smooth_idxmax_min_spread, trend_strength_idx, range_midpoint_ema, decay_corr_ret_vol, vol_sustained_overshoot, low_volatility_pullback, momentum_decay_cross
+
+Lessons:
+- Several ideas restated known factors; look for different information.

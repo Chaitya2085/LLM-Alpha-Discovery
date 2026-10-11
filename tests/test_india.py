@@ -130,8 +130,51 @@ def test_busy_server_is_retried_and_never_saved_as_holiday():
     assert not json.loads((TMP / "raw_dead" / "no_file_days.json").read_text())
 
 
+def test_corporate_action_rules():
+    days = pd.bdate_range("2024-01-01", periods=60)
+    n = len(days)
+    base = np.full(n, 100.0)
+    cols = {}
+    def stock(move_day, close_move, open_move, isin_change_day=None):
+        c = base.copy()
+        o = base.copy()
+        c[move_day:] = 100 * close_move
+        o[move_day:] = 100 * close_move
+        o[move_day] = 100 * open_move
+        isin = np.array(["INE001A01011"] * n, dtype=object)
+        if isin_change_day is not None:
+            isin[isin_change_day:] = "INE001A01029"
+        return c, o, isin
+    cols["BONUS12"] = stock(30, 0.67, 0.665)          # 1:2 bonus: opens on the ratio
+    cols["BADDAY"] = stock(30, 0.67, 0.98)            # -33% day that opened near yesterday's close
+    cols["BONUS11"] = stock(30, 0.49, 0.50)           # 1:1 bonus
+    cols["SPLIT"] = stock(30, 0.105, 0.10, 34)        # 1:10 split; new ISIN shows up 4 days later
+    cols["DEMERGE"] = stock(30, 0.45, 0.45)           # demerger: off any ratio -> return-neutral
+    cols["CRASH"] = stock(30, 0.5, 0.5)               # looks like a 1:1 bonus, but listed as 'keep'
+    mk = lambda i: pd.DataFrame({k: v[i] for k, v in cols.items()}, index=days)  # noqa: E731
+    close, open_, isin = mk(0), mk(1), mk(2)
+    vol = pd.DataFrame(1e5, index=days, columns=close.columns)
+    factor, ev = build_india.detect_actions(close, vol, vol * close, isin,
+                                            overrides={("CRASH", days[30]): ("keep", None)}, open_=open_)
+    got = {r.symbol: (r.kind, r.ratio, r.adjusted) for r in ev.itertuples()}
+    assert got["BONUS12"] == ("bonus", 1.5, True), got["BONUS12"]
+    assert not got["BADDAY"][2], got["BADDAY"]
+    assert got["BONUS11"][:2] == ("bonus", 2.0) and got["BONUS11"][2]
+    assert got["SPLIT"][:2] == ("split", 10.0) and got["SPLIT"][2]
+    assert got["DEMERGE"][0] == "other" and got["DEMERGE"][2]
+    assert not got["CRASH"][2]
+    adj = close * factor
+    assert abs(adj["SPLIT"].iloc[29] / adj["SPLIT"].iloc[30] - 1 / 1.05) < 1e-9   # +5% left after 1:10
+    assert adj["DEMERGE"].pct_change().abs().max() < 1e-4
+    assert adj["BADDAY"].pct_change().min() < -0.3 and adj["CRASH"].pct_change().min() < -0.45
+
+
 def test_build_adjusts_splits_and_builds_point_in_time_universe():
     build_india.RAW, build_india.OUT = RAW, OUT
+    crash_sym, crash_day = GT["crash"]
+    build_india.OVERRIDES = TMP / "overrides.csv"
+    build_india.OVERRIDES.write_text("# test\nsymbol,date,action,ratio,note\n"
+                                     f"{crash_sym},{crash_day},keep,,genuine crash\n")
     sys.argv = ["build_india.py", "--universe", "25", "--start", str(START)]
     build_india.main()
     px = pd.read_parquet(OUT / "prices.parquet")
@@ -146,12 +189,15 @@ def test_build_adjusts_splits_and_builds_point_in_time_universe():
     adj = px["close"].unstack("code")
     locked = (px["high"] == px["low"]).unstack("code")
     checked = 0
+    # a demerger is treated as return-neutral on its ex-date, so that one day's own move is lost
+    neutral_days = {(sym, pd.Timestamp(d)) for sym, d, k, kind in GT["actions"] if kind == "demerger"}
     for sym in adj.columns:
         a = adj[sym].dropna()
         tr = true_close[sym].reindex(a.index)
         ra, rt = a.pct_change(), tr.pct_change()
         lk = locked[sym].reindex(a.index).fillna(False)
         ok = ~(lk | lk.shift(1, fill_value=False)) & ra.notna() & rt.notna()  # skip locked days + day after
+        ok &= ~pd.Series([(sym, d) in neutral_days for d in ra.index], index=ra.index)
         err = (ra[ok] - rt[ok]).abs()
         assert err.max() < 0.01, f"{sym}: adjusted returns differ from true returns by {err.max():.3f}"
         checked += 1
@@ -159,16 +205,17 @@ def test_build_adjusts_splits_and_builds_point_in_time_universe():
     for sym, d, k, kind in GT["actions"]:
         if sym in adj.columns and pd.Timestamp(d) in adj[sym].dropna().index:
             assert abs(adj[sym].pct_change().get(pd.Timestamp(d), 0)) < 0.2, f"{kind} {sym} on {d} not adjusted"
-    crash_sym, crash_day = GT["crash"]
     assert crash_sym in adj.columns, "the crash stock should be in the universe"
     assert adj[crash_sym].pct_change()[pd.Timestamp(crash_day)] < -0.45, "a real crash must not be 'adjusted' away"
     ev = pd.read_csv(OUT / "corporate_actions.csv")
     done = ev[ev["adjusted"]]
     in_uni = {(a[0], a[3]) for a in GT["actions"]
               if a[0] in adj.columns and pd.Timestamp(a[1]) > adj[a[0]].first_valid_index()}
-    assert q["splits_adjusted"] == sum(1 for _, k in in_uni if k == "split"), (q["splits_adjusted"], in_uni)
-    assert q["bonuses_adjusted"] == sum(1 for _, k in in_uni if k == "bonus"), (q["bonuses_adjusted"], in_uni)
-    assert q["bonuses_adjusted"] >= 1 and q["splits_adjusted"] >= 1
+    want = {kind: sum(1 for _, k in in_uni if k == kind) for kind in ("split", "bonus", "demerger")}
+    assert q["splits_adjusted"] == want["split"] >= 1, (q, in_uni)
+    assert q["bonuses_adjusted"] == want["bonus"] >= 1, (q, in_uni)
+    assert q["other_adjusted"] == want["demerger"], (q, in_uni)
+    assert ev[ev["symbol"] == crash_sym]["note"].str.contains("override").any()
     assert crash_sym not in set(done["symbol"])
     assert GT["etf"] not in set(px.index.get_level_values("code")), "ETFs must be dropped"
 

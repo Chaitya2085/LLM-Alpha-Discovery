@@ -29,8 +29,8 @@ EMNLP 2025, [arXiv:2409.06289](https://arxiv.org/abs/2409.06289)), which reports
 |---|---|---|
 | 1 | China data, backtester, baselines (the paper's market) | **Done** |
 | 2 | LLM factor generation (many providers) and scoring | **Done** |
-| 3 | Indian market data: NSE pipeline, Nifty baselines, Indian costs and rules | **Built, run on your Mac** |
-| 4 | Feedback loop: LLM agents learn from their results | next |
+| 3 | Indian market data: NSE pipeline, Nifty baselines, Indian costs and rules | **Done** |
+| 4 | Feedback loop: Researcher and Critic agents, judged weekly after costs | **Built, run on your Mac** |
 | 5 | Prediction model: combined factors, confidence scores, market regimes | |
 | 6 | Honest test on held-out years + leakage experiment | |
 | 7 | AI agent team: the "trading floor" | |
@@ -58,6 +58,7 @@ python run_phase2.py --provider gemini groq    # LLMs write factors; scored, cha
 
 python run_india.py --test             # check NSE downloads work on your network
 python run_india.py                    # India: download (30-60 min first time), build, score, compare
+python run_phase4.py --providers gemini groq   # feedback rounds: Researcher and Critic agents
 ```
 
 Every chart in this README is produced by code into `figures/`, and every results
@@ -225,13 +226,17 @@ daily files, downloaded on your computer by `python run_india.py`.
   format on 8 July 2024).
 - **Companies only:** ETFs and fund units also trade in NSE's EQ series; they're dropped
   by ISIN (company ISINs start with INE).
-- **Splits and bonuses:** NSE's daily file has no corporate-action column and doesn't
-  adjust the previous close, so they're found in the data. A **split** gets a new ISIN in
-  India, so an ISIN change plus a price jump to a standard ratio (1:2, 1:5, 1:10, ...)
-  is a split. A **bonus** keeps its ISIN: it's recognised when the price falls to almost
-  exactly a standard ratio while rupee trading stays normal (a real crash comes with a
-  burst of trading, so it's left alone). Only data up to the ex-date is used, and every
-  adjustment is listed in `corporate_actions.csv` (check with `python src/india_diagnose.py`).
+- **Splits, bonuses, demergers:** NSE's daily file has no corporate-action column and
+  doesn't adjust the previous close, so they're found in the data. A **split** gets a new
+  ISIN in India, so an ISIN change within a few days plus a price jump to a face-value
+  ratio (1:2, 1:5, 1:10) is a split. A **bonus** keeps its ISIN; a drop to a bonus ratio
+  (1/2, 1/3, ...) is a bonus, and a small bonus (1:2, 2:5, 1:3) counts only if the
+  opening price also sits on the ratio, since the exchange resets the price that morning.
+  Any other one-day drop to 60% or less (demergers, capital reductions) is treated as
+  return-neutral. Real crashes that big are rare in top-200 stocks and are listed in
+  `config/india_overrides.csv` as real moves (Yes Bank 2020, DHFL 2018, Jet Airways 2019);
+  that file is also where a missed bonus can be added. Every event is in
+  `corporate_actions.csv` (check with `python src/india_diagnose.py`).
   Dividends aren't adjusted, matching the Nifty price indices.
 - **Universe:** each month, the 200 most-traded EQ stocks over the previous three months
   (point-in-time, no survivorship bias). **Benchmark:** Nifty 200.
@@ -241,22 +246,22 @@ daily files, downloaded on your computer by `python run_india.py`.
 <!-- AUTO:india_data -->
 - NSE data **1 Jan 2014 to 9 Oct 2026**: 3,149 trading days; universe from 1 Apr 2014
 - **664** different stocks passed through the top-200 universe (median 200 members a day)
-- Corporate actions adjusted: **35** splits (ISIN changed) and **173** bonuses, found in the price data
-- One-day moves over 25% left among top-200 stocks: 136
+- Corporate actions adjusted: **123** splits (ISIN changed), **142** bonuses and **27** other events (demergers etc.), found in the price data
+- One-day moves over 25% left among top-200 stocks: 104
 - Benchmark: **Nifty 200**, 3,163 → 13,063
-- Locked-circuit days among members: 0.028% up, 0.039% down
+- Locked-circuit days among members: 0.029% up, 0.039% down
 <!-- /AUTO:india_data -->
 
 <!-- AUTO:india_phase1_table -->
 | Strategy | Rank IC | ICIR | Gross / yr | Net / yr | Excess vs index / yr | Info ratio | Max drawdown | Costs / yr | Paper window* |
 |---|---|---|---|---|---|---|---|---|---|
-| Reversal 5d | 0.020 | 0.14 | 6.6% | 5.2% | −5.9% | −0.48 | −63.4% | 1.3% | +26.0% |
-| Momentum 60d | 0.000 | 0.00 | 14.8% | 13.8% | +1.4% | 0.21 | −48.5% | 0.9% | +32.4% |
-| Low volatility 20d | 0.019 | 0.11 | 13.6% | 10.0% | −2.3% | −0.33 | −38.4% | 3.2% | +28.5% |
-| Price-volume corr 20d (neg) | 0.018 | 0.16 | 10.7% | 9.0% | −2.7% | −0.31 | −49.5% | 1.5% | +22.0% |
-| **Alpha158 + LightGBM** | 0.058 | 0.46 | 14.6% | 11.7% | −0.4% | −0.05 | −46.4% | 2.6% | +26.0% |
+| Reversal 5d | 0.020 | 0.14 | 8.5% | 7.1% | −4.2% | −0.32 | −61.5% | 1.3% | +29.2% |
+| Momentum 60d | 0.000 | 0.00 | 15.9% | 14.8% | +2.4% | 0.32 | −47.1% | 0.9% | +33.3% |
+| Low volatility 20d | 0.019 | 0.11 | 13.9% | 10.2% | −2.1% | −0.30 | −37.5% | 3.3% | +29.0% |
+| Price-volume corr 20d (neg) | 0.018 | 0.17 | 12.2% | 10.6% | −1.4% | −0.14 | −46.6% | 1.5% | +23.2% |
+| **Alpha158 + LightGBM** | 0.057 | 0.45 | 14.8% | 12.2% | −0.1% | 0.01 | −44.3% | 2.3% | +24.6% |
 | Nifty 200 index (buy & hold) |  |  |  | 12.0% | +0.0% |  | −37.9% |  | +25.1% |
-| Equal-weight top-200 NSE (gross) |  |  |  | 13.6% | +1.9% |  | −53.9% |  | +51.4% |
+| Equal-weight top-200 NSE (gross) |  |  |  | 14.4% | +2.6% |  | −52.9% |  | +51.9% |
 
 Test period 2 Jan 2017 to 9 Oct 2026 (the last year is year-to-date). \*Paper window = 1 Jan 2023 to 31 Jan 2024, the paper's China test period, shown for comparison.
 <!-- /AUTO:india_phase1_table -->
@@ -268,16 +273,16 @@ data exactly as it was on China's.
 
 <!-- AUTO:india_transfer -->
 - **245** LLM factors scored in both markets on 2014–2020; correlation of their scores across markets **+0.69** (rank correlation +0.68)
-- Strong in China (|t| ≥ 3): **131**; of these, same direction in India: **112**, strong in India too: **77**
-- Strong in India: **124**; strong in both, same direction: **77**
+- Strong in China (|t| ≥ 3): **131**; of these, same direction in India: **111**, strong in India too: **78**
+- Strong in India: **124**; strong in both, same direction: **78**
 
 | Factor | Rank IC China | Rank IC India |
 |---|---|---|
-| `vol_adi_imbalance` | −0.035 | −0.026 |
-| `rev_sign_range` | +0.033 | +0.035 |
+| `vol_adi_imbalance` | −0.035 | −0.027 |
+| `rev_sign_range` | +0.033 | +0.034 |
 | `rev_short_term` | +0.042 | +0.029 |
 | `avg_sign_delta5_rev` | +0.032 | +0.021 |
-| `rev_short_term_overshoot` | +0.026 | +0.023 |
+| `rev_short_term_overshoot` | +0.026 | +0.024 |
 <!-- /AUTO:india_transfer -->
 
 ![India strength vs novelty](figures/india_phase2_strength_vs_novelty.png)
@@ -285,27 +290,27 @@ data exactly as it was on China's.
 <!-- AUTO:india_phase2_summary -->
 - Discovery period: **1 Jul 2014 to 28 Dec 2020** (2021 onward is held out)
 - Factors proposed: **251** from **4** model(s); valid and scored: **245**
-- Strong: **77** · novel: **141** · shortlisted: **24**
-- Reference: best single Alpha158 feature is KLEN (rank IC -0.045, t -11.5); median feature |rank IC| 0.015
+- Strong: **77** · novel: **142** · shortlisted: **23**
+- Reference: best single Alpha158 feature is KLEN (rank IC -0.045, t -11.5); median feature |rank IC| 0.016
 <!-- /AUTO:india_phase2_summary -->
 
 <!-- AUTO:india_phase2_shortlist -->
 | Factor | From | Expression | Rank IC | t | Day-to-day stability | Top-fifth excess / yr | Closest baseline feature |
 |---|---|---|---|---|---|---|---|
-| `low_parkinson_vol` | seed: claude (chat) | `-Mean(Log(high / low), 20)` | +0.038 | +7.6 | 0.99 | +6.7% | 0.67 (STD20) |
-| `rev_sign_range` | openrouter: nvidia/nemotron-3-ultra-550b-a55b:free | `-Sign(returns) * (close - TsMin(low, 10)) / (TsMax(high, 10) - TsMin(low, 10))` | +0.035 | +14.2 | −0.02 | +8.7% | 0.58 (OPEN0) |
-| `stable_volatility` | seed: claude (chat) | `-Std(Std(returns, 10), 40)` | +0.031 | +8.6 | 0.99 | +7.0% | 0.54 (STD60) |
-| `gap_volatility` | seed: claude (chat) | `-Std(open / Ref(close, 1) - 1, 20)` | +0.029 | +7.5 | 0.96 | +7.8% | 0.46 (STD20) |
-| `lottery_avoidance` | seed: claude (chat) | `-TsMax(returns, 20)` | +0.029 | +7.9 | 0.95 | +7.2% | 0.56 (MIN20) |
-| `volume_weighted_volatility_ratio` | gemini: gemini-3.8-flash | `-Std(returns * volume / Mean(volume, 20), 30)` | +0.028 | +8.0 | 0.97 | +7.7% | 0.70 (WVMA30) |
-| `low_beta` | seed: claude (chat) | `-Corr(returns, returns - CsDemean(returns), 60) * Std(returns, 60)` | +0.027 | +4.5 | 0.99 | +4.8% | 0.48 (STD60) |
-| `rev_delta_volume_cross` (flipped) | groq: openai/gpt-oss-120b | `Delta(close, 1) * (1 - CsRank(volume))` | −0.025 | −9.9 | −0.01 | +7.6% | 0.68 (KMID2) |
-| `amihud_illiquidity` (flipped) | seed: claude (chat) | `CsRank(Mean(Abs(returns) / (volume * vwap), 20))` | −0.023 | −7.3 | 1.00 | −0.8% | 0.27 (KLEN) |
-| `rev_short_term_overshoot` | groq: openai/gpt-oss-120b | `-Mean(Sign(Delta(close, 1)) * Abs(Delta(close, 1) - Mean(Delta(close, 1), 3)), 5)` | +0.023 | +9.6 | 0.47 | +10.6% | 0.58 (SUMP5) |
+| `low_parkinson_vol` | seed: claude (chat) | `-Mean(Log(high / low), 20)` | +0.038 | +7.6 | 0.99 | +6.0% | 0.67 (STD20) |
+| `rev_sign_range` | openrouter: nvidia/nemotron-3-ultra-550b-a55b:free | `-Sign(returns) * (close - TsMin(low, 10)) / (TsMax(high, 10) - TsMin(low, 10))` | +0.034 | +14.2 | −0.02 | +8.7% | 0.58 (OPEN0) |
+| `stable_volatility` | seed: claude (chat) | `-Std(Std(returns, 10), 40)` | +0.031 | +8.6 | 0.99 | +6.5% | 0.54 (STD60) |
+| `gap_volatility` | seed: claude (chat) | `-Std(open / Ref(close, 1) - 1, 20)` | +0.029 | +7.4 | 0.96 | +7.5% | 0.46 (STD20) |
+| `lottery_avoidance` | seed: claude (chat) | `-TsMax(returns, 20)` | +0.029 | +7.9 | 0.95 | +5.9% | 0.56 (MIN20) |
+| `volume_weighted_volatility_ratio` | gemini: gemini-3.8-flash | `-Std(returns * volume / Mean(volume, 20), 30)` | +0.028 | +7.9 | 0.97 | +6.6% | 0.70 (WVMA30) |
+| `rev_delta_volume_cross` (flipped) | groq: openai/gpt-oss-120b | `Delta(close, 1) * (1 - CsRank(volume))` | −0.025 | −10.1 | −0.01 | +7.8% | 0.68 (KMID2) |
+| `rev_short_term_overshoot` | groq: openai/gpt-oss-120b | `-Mean(Sign(Delta(close, 1)) * Abs(Delta(close, 1) - Mean(Delta(close, 1), 3)), 5)` | +0.024 | +9.9 | 0.47 | +12.5% | 0.57 (SUMP5) |
+| `amihud_illiquidity` (flipped) | seed: claude (chat) | `CsRank(Mean(Abs(returns) / (volume * vwap), 20))` | −0.023 | −7.2 | 1.00 | −1.6% | 0.27 (KLEN) |
+| `shadow_asymmetry` | gemini: gemini-3.8-flash | `EMA((Min(open, close) - low - (high - Max(open, close))) / (high - low), 15)` | +0.022 | +8.8 | 0.90 | +6.3% | 0.35 (KUP) |
 <!-- /AUTO:india_phase2_shortlist -->
 
-**Checks:** 6 India tests on a synthetic NSE archive (both file formats, splits and
-bonuses told apart from a genuine crash, ETFs, weekend special sessions, holidays,
+**Checks:** 7 India tests on a synthetic NSE archive (both file formats, splits and
+bonuses, demergers and manual overrides told apart from a genuine crash, ETFs, weekend special sessions, holidays,
 listings and delistings, locked circuits, blocked downloads, NSE "busy" errors, resume).
 `python src/india_diagnose.py` lists every adjustment and the biggest remaining moves on
 the real data. The whole India pipeline was also run on 11 years of synthetic **random-walk** prices: every
@@ -317,6 +322,67 @@ price data at least 30 days old, and specific stock recommendations need SEBI
 registration (see [ROADMAP.md](ROADMAP.md)).*
 
 ---
+
+## Phase 4: the feedback loop
+
+![Feedback rounds](figures/india_phase4_rounds.png)
+
+Each LLM becomes a **Researcher**. A **Critic** reads the test results and tells it, in
+plain words, what worked and what didn't; the Researcher then tries again. The question
+is simple: *does feedback make an LLM a better researcher?*
+
+- **Judged the way the product would trade:** every week, buy the top fifth of stocks by
+  the factor, hold them 5 trading days, pay Indian trading costs, and compare with simply
+  holding all stocks equally. Long-only, and the factor is used exactly as proposed
+  (never flipped for it). 2014–2020 only; later years stay untouched.
+- **The Critic is rule-based**, so every verdict traces to a number: *works after costs*,
+  *works in reverse*, *too costly* (real signal, but the portfolio churns),
+  *copy* (ranks stocks like a known feature or an earlier factor), *unstable*, *no
+  signal*, or *broken*. Its feedback never mentions a market, dates or tickers.
+- **A control arm:** the same LLM is also asked for the same number of factors without
+  feedback. If feedback helps, the feedback arm should find more factors that work.
+- Round 0 is each LLM's Phase 2 factors, so the first feedback is about its own earlier
+  ideas. Everything (prompts, replies, the Critic's notes) is saved, and
+  `python run_phase4.py` with no providers rebuilds every table from the library.
+
+<!-- AUTO:phase4_summary -->
+- Judged on **top-200 NSE**, 1 Jul 2014 to 22 Dec 2020: every week buy the top fifth by the factor, hold 5 days, pay costs, compare with holding all stocks equally
+- **439** new factors from **3** LLM researcher(s); **25** work after costs
+- Share of new factors that work after costs: with feedback **10%**, without feedback **1%**
+
+| Researcher | Phase 2 factors that work weekly | With feedback: first → last round | Without feedback (avg) | Worked in reverse (with feedback) |
+|---|---|---|---|---|
+| gemini: gemini-3.8-flash | 8% | 23% → 17% (3 rounds) | 2% | 3% |
+| groq: openai/gpt-oss-120b | 0% | 3% → 0% (3 rounds) | 0% | 4% |
+| openrouter: auto-free | 0% | 19% → 7% (3 rounds) | 0% | 4% |
+<!-- /AUTO:phase4_summary -->
+
+**Best new factors** (work weekly after costs):
+
+<!-- AUTO:phase4_best -->
+| Factor | From | Round | Expression | After costs / yr | Beats average | t | Weekly turnover |
+|---|---|---|---|---|---|---|---|
+| `vol_surge_flip` | auto-free | 1 (feedback) | `-EMA(volume / Mean(volume, 20) * CsRank(volume), 10)` | +5.3% | 52% | +3.5 | 25% |
+| `range_position_trend_slow` | gpt-oss-120b | 2 (feedback) | `Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))` | +4.9% | 51% | +2.6 | 23% |
+| `vwap_intraday_range_position` | gemini-3.8-flash | 2 (feedback) | `EMA(Mean((vwap - low) / (high - low), 40), 20)` | +4.8% | 54% | +2.0 | 14% |
+| `price_range_position_slow` | gpt-oss-120b | 1 (feedback) | `Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 15) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))` | +4.4% | 52% | +3.6 | 23% |
+| `vwap_range_position` | gemini-3.8-flash | 3 (control) | `Decay(Mean((vwap - low) / (high - low + 1e-06), 20), 10)` | +4.1% | 57% | +2.1 | 27% |
+| `lottery_max_penalty` | gemini-3.8-flash | 1 (feedback) | `-EMA(CsRank(TsMax(returns, 20)), 15)` | +4.0% | 53% | +3.8 | 19% |
+| `intraday_to_overnight_gap_ratio` | gemini-3.8-flash | 2 (feedback) | `EMA(Mean((high - low) / Abs(open - Ref(close, 1)), 30), 15)` | +4.0% | 53% | +3.1 | 10% |
+| `smoothed_shadow_asymmetry` | gemini-3.8-flash | 1 (feedback) | `EMA(Mean((Min(open, close) - low - (high - Max(open, close))) / (high - low), 40), 20)` | +3.6% | 53% | +3.6 | 12% |
+| `volume_anti_persistence` | gemini-3.8-flash | 1 (feedback) | `-EMA(Corr(volume, Ref(volume, 1), 40), 15)` | +3.4% | 51% | +2.9 | 17% |
+| `range_stability` | gemini-3.8-flash | 2 (feedback) | `-EMA(CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)` | +2.9% | 51% | +3.8 | 20% |
+<!-- /AUTO:phase4_best -->
+
+**Why this bar is high:** judged this way on China's 2014–2020 data, only 10 of the 251
+Phase 2 factors work after costs (none of gpt-oss's 91), because a factor has to pick
+winners among the stocks it *likes*, not just rank the losers, and has to do it without
+churning the portfolio. That's the bar a real product has to clear.
+
+**Checks:** 3 Phase 4 tests on a synthetic market with one planted effect and a fake LLM
+that only fixes its mistakes when told about them: the weekly judge finds the effect and
+charges costs correctly, every Critic verdict fires on the right numbers, the feedback arm
+beats the control arm, and no prompt contains a year or a market name.
 
 ## Design choices that keep results honest
 
@@ -354,11 +420,13 @@ ROADMAP.md               the plan for Phases 3-9
 run_phase1.py            data -> features -> baselines -> chart -> README table
 run_phase2.py            tests -> LLM factors -> scoring -> charts -> README tables
 run_india.py             NSE download -> India dataset -> baselines -> factor scores -> China vs India
+run_phase4.py            tests -> feedback rounds per LLM -> tables -> chart -> README tables
 src/
   markets.py             per-market settings (paths, costs, rules); --market china|india
   india_download.py      download NSE bhavcopies and index closes (resumable, polite)
   india_parse.py         read both NSE bhavcopy formats and index files
-  build_india.py         India dataset: split/bonus adjustment, top-200 universe, benchmark
+  build_india.py         India dataset: split/bonus detection, ETFs removed, top-200 universe, benchmark
+  india_diagnose.py      health check: every split/bonus adjustment and the biggest moves left
   compare_markets.py     do LLM factors work in both China and India?
   qlib_reader.py         read Qlib .bin files without installing Qlib
   build_dataset.py       CSI300 point-in-time panel, tradability flags, quality checks
@@ -373,14 +441,20 @@ src/
   llm.py                 client for all providers; `check` and `models` commands
   generate_factors.py    ask an LLM, validate, de-duplicate, save to the library
   score_factors.py       score on 2014-2020: IC, stability, novelty, per-model summary
+  weekly.py              the weekly judge: top fifth, held 5 days, after costs (Phase 4)
+  critic.py              the Critic agent: verdicts and plain feedback (rule-based)
+  feedback_loop.py       Researcher rounds with and without feedback; Phase 4 tables
   style.py               shared chart style
   plot_phase1.py         figures/phase1_growth.png
   plot_phase2.py         figures/phase2_strength_vs_novelty.png, figures/phase2_models.png
+  plot_phase4.py         figures/<prefix>phase4_rounds.png
   report.py              fills the README tables from results/
 tests/                   test_dsl.py (factor language), test_llm.py (LLM client),
-                         test_india.py + fake_nse.py (Indian pipeline on a synthetic NSE archive)
+                         test_india.py + fake_nse.py (Indian pipeline on a synthetic NSE archive),
+                         test_phase4.py (weekly judge, Critic, feedback loop with a fake LLM)
+config/india_overrides.csv  manual decisions for corporate actions (real crashes, missed bonuses)
 factors/library.jsonl    every proposed factor: valid, invalid (with reason), duplicate
-llm_runs/                every raw LLM reply (prompt, reply, model, tokens)
+llm_runs/                every raw LLM reply (prompt, reply, model, tokens); Phase 4 in llm_runs/phase4/
 results/                 CSV/JSON/parquet outputs
 figures/                 all charts
 ```
@@ -391,6 +465,7 @@ figures/                 all charts
 python tests/test_dsl.py
 python tests/test_llm.py
 python tests/test_india.py
+python tests/test_phase4.py
 ```
 
 They need no data and no API keys, and run automatically on GitHub for every push

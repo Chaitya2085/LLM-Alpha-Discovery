@@ -1,0 +1,33 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 30 proposed; 1 worked after costs (0 strongly), 1 worked in reverse, 7 too costly, 3 copies, 9 no reliable signal, 9 broken or duplicate.
+
+Build on these (they worked after costs):
+- price_range_position_slow: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 15) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  +4.4%/yr after costs, beats the average in 52% of weeks (t 3.7)
+
+Worked in REVERSE (the stocks they liked did worse):
+- ema_volume_price_gap: EMA((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 20) * CsRank(volume)  ->  works in reverse: the stocks it likes do worse (t -3.0); the opposite idea may be right
+
+Real signal but too costly (the portfolio changes too much each week):
+- range_gap_cross10_rev: -Mean((high - low) / close, 10) * Sign(open - Ref(close, 1))  ->  before costs +5.1%/yr, after costs -4.8%/yr; 76% of the portfolio is replaced each week
+- pv_vol_price_gap_rev: -(open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1)  ->  before costs +4.2%/yr, after costs -5.9%/yr; 77% of the portfolio is replaced each week
+- short_term_reversal_gap_rev: -Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)  ->  before costs +3.1%/yr, after costs -7.1%/yr; 78% of the portfolio is replaced each week
+- rev_oscillator_cross_rev: -Sign(Mean(returns, 5) - Mean(returns, 15)) * (Mean(returns, 5) - Mean(returns, 15))  ->  before costs +3.0%/yr, after costs -7.0%/yr; 77% of the portfolio is replaced each week
+- corr_ret_vol15_volstd_rev: -Corr(volume, returns, 15) * Std(volume, 15)  ->  before costs +1.9%/yr, after costs -3.7%/yr; 42% of the portfolio is replaced each week
+
+Too similar to something known:
+- intraday_body_slow: Mean(Abs(close - open) / (high - low + 1e-06), 20) * CsRank(open)  ->  ranks stocks almost like intraday_body_ratio (corr 0.70)
+- price_range_position_slow: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 10)  ->  ranks stocks almost like BETA30 (corr 0.87)
+- slope_vs_std_slow: Slope(Mean(close, 30), 30) / Std(Mean(close, 30), 30)  ->  ranks stocks almost like BETA60 (corr 0.85)
+
+Broken (fix these mistakes):
+- slow_range_momentum: EMA(high - low, 30) / Mean(high - low, 60) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 120))  ->  invalid expression: Ref: window must be 1..60, got 120
+- rev_gap_open_close_slow: -Decay(Pct(open, 1) - Pct(close, 1), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 90))  ->  invalid expression: Ref: window must be 1..60, got 90
+- vol_std_momentum: Mean(Std(volume, 10) / Mean(volume, 30), 20) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 80))  ->  invalid expression: Ref: window must be 1..60, got 80
+- cross_sectional_vol_zscore: CsZscore(Mean(volume, 20) / Mean(volume, 60)) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 90))  ->  invalid expression: Ref: window must be 1..60, got 90
+
+No reliable signal: steady_vol_spike, price_vol_corr_smooth, trend_residual_decay, slow_momentum_decay, volume_spike_sustained, trend_residual_decay, idx_max_min_gap, volatility_skew_decay, price_vs_vwap_gap_slow
+
+Lessons:
+- Your signals change too fast: over half the portfolio is replaced each week. Smooth them (Mean, EMA, Decay) or use longer windows.
+- Several ideas restated known factors; look for different information.

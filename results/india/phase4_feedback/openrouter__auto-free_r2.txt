@@ -1,0 +1,26 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 15 proposed; 1 worked after costs (0 strongly), 0 worked in reverse, 3 too costly, 5 copies, 5 no reliable signal, 1 broken or duplicate.
+
+Build on these (they worked after costs):
+- vol_persistence_weekly: -EMA(Corr(volume, Ref(volume, 5), 60), 15)  ->  +2.6%/yr after costs, beats the average in 53% of weeks (t 3.6)
+
+Real signal but too costly (the portfolio changes too much each week):
+- vol_change_cluster: -EMA(Corr(Delta(volume, 1), Ref(Delta(volume, 1), 1), 30), 15)  ->  before costs +2.6%/yr, after costs -0.2%/yr; 21% of the portfolio is replaced each week
+- vol_adj_momentum: EMA(Mean(returns * Mean(volume, 20) / (volume + 1e-06), 20), 15)  ->  before costs +2.5%/yr, after costs -0.7%/yr; 24% of the portfolio is replaced each week
+- vol_price_divergence: -EMA(Slope(volume, 20) * Sign(Slope(close, 20)), 10)  ->  before costs -2.0%/yr, after costs -7.2%/yr; 40% of the portfolio is replaced each week
+
+Too similar to something known:
+- vol_quiet_drift: EMA(Pct(close, 20) * Mean(volume, 20) / (volume + 1e-06), 15)  ->  ranks stocks almost like BETA30 (corr 0.94)
+- vol_at_highs_fade: -EMA(volume / Mean(volume, 20) * TsRank(high, 20), 15)  ->  ranks stocks almost like MA30 (corr 0.78)
+- mom_low_vol_persist: EMA(Pct(close, 60) * (1 - Corr(volume, Ref(volume, 1), 60)), 15)  ->  ranks stocks almost like ROC60 (corr 0.91)
+- accumulation_at_lows: EMA(volume / Mean(volume, 20) * (1 - TsRank(low, 20)), 15)  ->  ranks stocks almost like BETA30 (corr 0.76)
+- slope_alignment: EMA(Slope(close, 20) * Slope(volume, 20) / (Std(close, 20) * Std(volume, 20) + 1e-06), 15)  ->  ranks stocks almost like CORR30 (corr 0.76)
+
+Broken (fix these mistakes):
+- gap_fade_quiet: -EMA(Abs(open - Ref(close, 1)) / (high - low + 1e-6) * Mean(volume, 20) / (volume + 1e-6), 15)  ->  invalid expression: too deeply nested: depth 9 (max 8)
+
+No reliable signal: vol_stability, intraday_eff_quiet, vol_deceleration, vol_trend_rank, vol_regime_stability
+
+Lessons:
+- Several ideas restated known factors; look for different information.

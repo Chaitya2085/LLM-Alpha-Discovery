@@ -1,0 +1,33 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 60 proposed; 5 worked after costs (0 strongly), 2 worked in reverse, 3 too costly, 28 copies, 21 no reliable signal, 1 broken or duplicate.
+
+Build on these (they worked after costs):
+- quiet_accumulation_spread: EMA(CsRank(returns) * (1 - CsRank(volume)), 20)  ->  +5.3%/yr after costs, beats the average in 53% of weeks (t 2.7)
+- low_volatility_rank: -EMA(CsRank(Std(returns, 60)), 20)  ->  +4.9%/yr after costs, beats the average in 51% of weeks (t 3.7)
+- volatility_stability: -EMA(Std(Std(returns, 5), 30) / Std(returns, 30), 10)  ->  +3.4%/yr after costs, beats the average in 52% of weeks (t 3.4)
+- tail_risk_kurtosis: -Kurt(returns, 60)  ->  +2.7%/yr after costs, beats the average in 53% of weeks (t 3.0)
+- range_volume_correlation_penalty: -Corr((high - low) / close, volume, 30)  ->  +2.5%/yr after costs, beats the average in 51% of weeks (t 4.4)
+
+Worked in REVERSE (the stocks they liked did worse):
+- range_to_return_vol_ratio: -Mean((high - low) / close, 30) / Std(returns, 30)  ->  works in reverse: the stocks it likes do worse (t -3.7); the opposite idea may be right
+- volume_persistence: EMA(Corr(volume, Ref(volume, 1), 30), 10)  ->  works in reverse: the stocks it likes do worse (t -2.4); the opposite idea may be right
+
+Real signal but too costly (the portfolio changes too much each week):
+- shadow_asymmetry: EMA((Min(open, close) - low - (high - Max(open, close))) / (high - low), 15)  ->  before costs +2.5%/yr, after costs -3.8%/yr; 49% of the portfolio is replaced each week
+- intraday_range_skew_aversion: -Skew((high - low) / vwap, 40)  ->  before costs +2.4%/yr, after costs -1.5%/yr; 30% of the portfolio is replaced each week
+- reversal_gap_reaction: -EMA((open - Ref(close, 1)) / Mean(high - low, 10), 3)  ->  before costs -0.4%/yr, after costs -10.0%/yr; 74% of the portfolio is replaced each week
+
+Too similar to something known:
+- path_smoothness_momentum: Mean(returns, 40) / Mean(Abs(returns), 40)  ->  ranks stocks almost like MA60 (corr 0.90)
+- smoothed_rank_momentum: EMA(CsRank(Pct(close, 40)), 20)  ->  ranks stocks almost like BETA60 (corr 0.97)
+- normalized_dual_ema_spread: (EMA(close, 15) - EMA(close, 60)) / Std(close, 60)  ->  ranks stocks almost like SUMN60 (corr 0.83)
+- trend_t_stat_momentum: Slope(close, 30) / Std(Resi(close, 30), 30)  ->  ranks stocks almost like BETA30 (corr 0.92)
+- trend_residual_reversal: -Decay(Resi(close, 20) / close, 5)  ->  ranks stocks almost like RESI20 (corr 0.85)
+
+No reliable signal: volatility_expansion_penalty, volume_skewness_anomaly, volume_coefficient_variation, turnover_drift_decay, price_volume_slope_alignment, overnight_intraday_divergence, vwap_intraday_range_position, vwap_displacement_reversal, illiquidity_variance_penalty, volatility_term_structure_compression, cross_sectional_volume_surge_penalty, volume_skewness_exhaustion, ...
+
+Lessons:
+- Your price_volume ideas worked best; push further in that direction.
+- Your volatility ideas worked best; push further in that direction.
+- Several ideas restated known factors; look for different information.

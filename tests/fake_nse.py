@@ -63,12 +63,15 @@ def make_archive(root: Path, start: date, end: date, n_stocks: int = 60, seed: i
         t = int(rng.integers(T // 5, T - 5))
         if i % 2 == 0:
             k, kind = float(rng.choice([2.0, 5.0, 10.0])), "split"
-            isin_ver[t:, j] += 1
+            isin_ver[min(t + 3, T - 1):, j] += 1     # NSE's file shows the new ISIN a few days later
+        elif i % 4 == 3:
+            k, kind = 1 / 0.45, "demerger"            # shareholders get shares of a new company
         else:
-            k, kind = float(rng.choice([1.5, 2.0, 3.0])), "bonus"   # bonus 1:2, 1:1, 2:1
+            k, kind = float(rng.choice([1.5, 2.0, 3.0, 5.0])), "bonus"   # bonus 1:2, 1:1, 2:1, 4:1
         split_ratio[t:, j] *= k
         actions.append((syms[j], days[t], k, kind))
-    # a genuine crash (fraud news): -50% on heavy trading. It must NOT be mistaken for a 1:1 bonus.
+    # a genuine crash (fraud news): exactly -50%. In the data it looks just like a 1:1 bonus, so the
+    # tests list it in the overrides file as a real move, the way YESBANK 2020-03-06 is listed.
     crash_t = T // 2
     crash_j = int(max((j for j in range(n_stocks) if j not in set(movers) and listed[crash_t - 70:crash_t + 5, j].all()),
                       key=lambda j: size[j]))   # a liquid stock, so it is in the universe

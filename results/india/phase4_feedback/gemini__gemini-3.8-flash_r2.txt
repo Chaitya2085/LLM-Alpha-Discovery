@@ -1,0 +1,33 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 30 proposed; 4 worked after costs (0 strongly), 1 worked in reverse, 3 too costly, 5 copies, 16 no reliable signal, 1 broken or duplicate.
+
+Build on these (they worked after costs):
+- vwap_intraday_range_position: EMA(Mean((vwap - low) / (high - low), 40), 20)  ->  +4.8%/yr after costs, beats the average in 54% of weeks (t 2.0)
+- intraday_to_overnight_gap_ratio: EMA(Mean((high - low) / Abs(open - Ref(close, 1)), 30), 15)  ->  +4.0%/yr after costs, beats the average in 53% of weeks (t 3.1)
+- range_stability: -EMA(CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)  ->  +2.9%/yr after costs, beats the average in 51% of weeks (t 3.8)
+- volume_weighted_lower_shadow: EMA(Mean((Min(open, close) - low) / (high - low) * volume / Mean(volume, 40), 40), 20)  ->  +0.9%/yr after costs, beats the average in 50% of weeks (t 3.8)
+
+Worked in REVERSE (the stocks they liked did worse):
+- upside_vs_downside_volume_correlation: EMA(Corr(volume, Max(returns, 0), 40) - Corr(volume, Min(returns, 0), 40), 20)  ->  works in reverse: the stocks it likes do worse (t -3.5); the opposite idea may be right
+
+Real signal but too costly (the portfolio changes too much each week):
+- overnight_drift_reversal: -EMA(CsRank(Mean((open - Ref(close, 1)) / Ref(close, 1), 20)), 15)  ->  before costs +2.2%/yr, after costs -0.7%/yr; 22% of the portfolio is replaced each week
+- close_above_vwap_spread: EMA(Mean((close - vwap) / close, 40), 20)  ->  before costs +1.5%/yr, after costs -0.1%/yr; 12% of the portfolio is replaced each week
+- intraday_overnight_return_spread: EMA(Mean((close - open) / open - (open - Ref(close, 1)) / Ref(close, 1), 40), 20)  ->  before costs +1.4%/yr, after costs -0.6%/yr; 15% of the portfolio is replaced each week
+
+Too similar to something known:
+- trend_linearity_direction: EMA(Sign(Slope(close, 40)) * Rsquare(close, 40), 20)  ->  ranks stocks almost like BETA60 (corr 0.89)
+- abnormal_volume_weighted_momentum: EMA(Mean(returns * volume / Mean(volume, 40), 20), 10)  ->  ranks stocks almost like volume_return_covariance (corr 0.88)
+- intraday_overnight_spread: EMA(CsRank(Mean((close - open) / open, 20)) - CsRank(Mean((open - Ref(close, 1)) / Ref(close, 1), 20)), 15)  ->  ranks stocks almost like overnight_drift_reversal (corr 0.80)
+- downside_resilience: EMA(CsRank(TsMin(returns, 20)), 15)  ->  ranks stocks almost like low_downside_volatility (corr 0.83)
+- path_efficiency_ratio: EMA(CsRank(Abs(Delta(close, 20)) / Sum(Abs(Delta(close, 1)), 20)), 15)  ->  ranks stocks almost like RSQR30 (corr 0.82)
+
+Broken (fix these mistakes):
+- overnight_intraday_vol_ratio: -EMA(CsRank(Std((open - Ref(close, 1)) / Ref(close, 1), 30) / Std((close - open) / open, 30)), 15)  ->  invalid expression: too deeply nested: depth 9 (max 8)
+
+No reliable signal: upside_to_downside_vol_ratio, range_return_directional_alignment, range_anti_persistence, overnight_intraday_counterbalance, intraday_to_overnight_vol_ratio, return_anti_persistence, upper_shadow_volume_decoupling, standardized_lottery_penalty, volatility_clustering_penalty, downside_semivariance_ratio, volatility_acceleration_penalty, intraday_skewness_preference, ...
+
+Lessons:
+- Your intraday ideas worked best; push further in that direction.
+- Several ideas restated known factors; look for different information.

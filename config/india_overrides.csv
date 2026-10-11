@@ -1,0 +1,8 @@
+# Manual decisions for the India corporate-action detector (src/build_india.py).
+# action: keep   = a real price move; never adjust it
+#         adjust = a corporate action the detector missed or got wrong (give ratio = shares after / before)
+# Add a line, then re-run:  python run_india.py --skip-download
+symbol,date,action,ratio,note
+YESBANK,2020-03-06,keep,,genuine crash: RBI moratorium on Yes Bank
+DHFL,2018-09-21,keep,,genuine crash: lender liquidity scare
+JETAIRWAYS,2019-06-18,keep,,genuine crash: insolvency proceedings

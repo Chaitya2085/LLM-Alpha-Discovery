@@ -40,9 +40,12 @@ def append_library(records: list[dict]) -> None:
             f.write(json.dumps(r) + "\n")
 
 
-def ingest(reply_text: str, source: dict, library: list[dict]) -> list[dict]:
-    """Parse one LLM reply into library records (valid, invalid or duplicate)."""
-    seen = {r["expression"] for r in library if r["status"] == "valid"}
+def ingest(reply_text: str, source: dict, library: list[dict],
+           dedup_against: list[dict] | None = None) -> list[dict]:
+    """Parse one LLM reply into library records (valid, invalid or duplicate).
+    Duplicates are checked against `dedup_against` (default: the whole library)."""
+    pool = library if dedup_against is None else dedup_against
+    seen = {r["expression"] for r in pool if r["status"] == "valid"}
     next_id = len(library) + 1
     try:
         obj = extract_json(reply_text)

@@ -1,0 +1,25 @@
+Results of your previous round. Each factor was tested the way it will be used: every week, buy the top fifth of stocks ranked by the factor, hold them 5 trading days, pay trading costs, and compare with simply holding all stocks equally.
+
+Scoreboard: 16 proposed; 3 worked after costs (0 strongly), 0 worked in reverse, 2 too costly, 8 copies, 3 no reliable signal, 0 broken or duplicate.
+
+Build on these (they worked after costs):
+- vol_surge_flip: -EMA(volume / Mean(volume, 20) * CsRank(volume), 10)  ->  +5.3%/yr after costs, beats the average in 52% of weeks (t 3.5)
+- vol_persistence_flip: -EMA(Corr(volume, Ref(volume, 1), 60), 10)  ->  +0.5%/yr after costs, beats the average in 47% of weeks (t 3.8)
+- kurtosis_vol_norm: EMA(Kurt(volume, 30) / (Std(volume, 30) + 1e-06), 10)  ->  +0.2%/yr after costs, beats the average in 49% of weeks (t 2.1)
+
+Real signal but too costly (the portfolio changes too much each week):
+- intraday_gap_range_flip: -EMA((open - Ref(close, 1)) / (high - low + 1e-06) * CsRank(volume), 10)  ->  before costs -0.6%/yr, after costs -7.6%/yr; 54% of the portfolio is replaced each week
+- vwap_momentum_vol: EMA((close - vwap) / close * CsRank(volume), 10)  ->  before costs -0.6%/yr, after costs -8.4%/yr; 59% of the portfolio is replaced each week
+
+Too similar to something known:
+- intraday_body_conviction_flip: -EMA(Abs(close - open) / (high - low + 1e-06) * CsRank(volume), 10)  ->  ranks stocks almost like vol_surge_flip (corr 0.86)
+- vol_tsrank_std_flip: -EMA(TsRank(Std(returns, 10), 60) * CsRank(volume), 10)  ->  ranks stocks almost like intraday_body_conviction_flip (corr 0.81)
+- rev_overnight_gap_smoothed: -EMA(open / Ref(close, 1) - 1, 10) * EMA(volume / Mean(volume, 20), 10)  ->  ranks stocks almost like intraday_gap_range_flip (corr 0.70)
+- pv_divergence: -EMA(Corr(close, volume, 30), 10) * CsRank(close / TsMax(high, 60))  ->  ranks stocks almost like CORR30 (corr 0.80)
+- range_expansion_sign: EMA((high - low) / Mean(high - low, 20), 10) * Sign(close - open)  ->  ranks stocks almost like OPEN0 (corr 0.76)
+
+No reliable signal: vol_regime_ratio, skew_vol_combo, decay_volume_trend
+
+Lessons:
+- Your volume ideas worked best; push further in that direction.
+- Several ideas restated known factors; look for different information.

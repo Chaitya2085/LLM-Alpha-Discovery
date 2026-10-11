@@ -6,18 +6,18 @@
   },
   "2018": {
     "train_rows": 133764,
-    "best_iter": 386,
-    "secs": 4.2
+    "best_iter": 368,
+    "secs": 4.1
   },
   "2019": {
     "train_rows": 183257,
-    "best_iter": 337,
-    "secs": 5.4
+    "best_iter": 221,
+    "secs": 4.3
   },
   "2020": {
     "train_rows": 232335,
-    "best_iter": 63,
-    "secs": 3.5
+    "best_iter": 45,
+    "secs": 3.4
   },
   "2021": {
     "train_rows": 280964,
@@ -26,27 +26,27 @@
   },
   "2022": {
     "train_rows": 330748,
-    "best_iter": 74,
-    "secs": 5.1
+    "best_iter": 167,
+    "secs": 7.0
   },
   "2023": {
     "train_rows": 379952,
-    "best_iter": 134,
-    "secs": 7.3
+    "best_iter": 41,
+    "secs": 5.2
   },
   "2024": {
     "train_rows": 429335,
-    "best_iter": 185,
-    "secs": 10.0
+    "best_iter": 248,
+    "secs": 12.0
   },
   "2025": {
     "train_rows": 478139,
-    "best_iter": 217,
+    "best_iter": 198,
     "secs": 12.3
   },
   "2026": {
     "train_rows": 527174,
-    "best_iter": 232,
-    "secs": 14.6
+    "best_iter": 54,
+    "secs": 8.1
   }
 }

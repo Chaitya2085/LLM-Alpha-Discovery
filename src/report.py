@@ -137,8 +137,9 @@ def india_data() -> str | None:
             f"universe from {day(q['first_universe_day'])}\n"
             f"- **{q['unique_stocks_ever_in_universe']}** different stocks passed through the top-200 universe "
             f"(median {med} members a day)\n"
-            + (f"- Corporate actions adjusted: **{q['splits_adjusted']}** splits (ISIN changed) and "
-               f"**{q['bonuses_adjusted']}** bonuses, found in the price data\n" if "splits_adjusted" in q else
+            + (f"- Corporate actions adjusted: **{q['splits_adjusted']}** splits (ISIN changed), "
+               f"**{q['bonuses_adjusted']}** bonuses and **{q.get('other_adjusted', 0)}** other events "
+               "(demergers etc.), found in the price data\n" if "splits_adjusted" in q else
                f"- **{q['corporate_action_adjustments']}** corporate-action adjustments\n") +
             f"- One-day moves over 25% left among top-200 stocks: {q['member_days_abs_return_gt_25pct']}\n"
             f"- Benchmark: **{q['benchmark']}**, {q['benchmark_first_last'][0]:,.0f} → {q['benchmark_first_last'][1]:,.0f}\n"
@@ -162,13 +163,59 @@ def india_transfer() -> str | None:
     return "\n".join(rows)
 
 
+def _short(label: str) -> str:
+    return label.split(": ", 1)[-1].split("/")[-1].replace(":free", "")
+
+
+def phase4_summary(cfg=INDIA) -> str | None:
+    f = cfg.results / "phase4_summary.json"
+    if not f.exists():
+        return None
+    s = json.loads(f.read_text())
+    lines = [f"- Judged on **{cfg.universe_label}**, {day(s['period'][0])} to {day(s['period'][1])}: every week buy "
+             "the top fifth by the factor, hold 5 days, pay costs, compare with holding all stocks equally",
+             f"- **{s['factors_proposed']}** new factors from **{s['researchers']}** LLM researcher(s); "
+             f"**{s.get('useful_total', 0)}** work after costs"]
+    if s.get("useful_pct_feedback") is not None:
+        ctl = (f", without feedback **{s['useful_pct_control']:.0f}%**" if s.get("useful_pct_control") is not None
+               else "")
+        lines.append(f"- Share of new factors that work after costs: with feedback **{s['useful_pct_feedback']:.0f}%**{ctl}")
+    rows = ["", "| Researcher | Phase 2 factors that work weekly | With feedback: first → last round | "
+                "Without feedback (avg) | Worked in reverse (with feedback) |", "|---|---|---|---|---|"]
+    for r in s["per_researcher"]:
+        r0 = "" if r.get("round0_useful_pct") is None else f"{r['round0_useful_pct']:.0f}%"
+        fb = (f"{r['feedback_first_useful_pct']:.0f}% → {r['feedback_last_useful_pct']:.0f}% "
+              f"({r['feedback_rounds']} rounds)") if "feedback_first_useful_pct" in r else ""
+        ct = f"{r['control_mean_useful_pct']:.0f}%" if "control_mean_useful_pct" in r else ""
+        bw = f"{r['feedback_backwards_pct']:.0f}%" if "feedback_backwards_pct" in r else ""
+        rows.append(f"| {r['researcher']} | {r0} | {fb} | {ct} | {bw} |")
+    return "\n".join(lines + rows)
+
+
+def phase4_best(cfg=INDIA) -> str | None:
+    f = cfg.results / "phase4_summary.json"
+    if not f.exists():
+        return None
+    best = json.loads(f.read_text()).get("best", [])
+    if not best:
+        return "_No new factor worked after costs yet._"
+    rows = ["| Factor | From | Round | Expression | After costs / yr | Beats average | t | Weekly turnover |",
+            "|---|---|---|---|---|---|---|---|"]
+    for b in best:
+        rows.append(f"| `{b['name']}` | {_short(b['researcher'])} | {b['round']} ({b['arm']}) | `{b['expression']}` | "
+                    f"{pct(b['net_excess_ann'], signed=True)} | {b['hit_rate']:.0%} | {b['weekly_ic_t']:+.1f} | "
+                    f"{b['turnover']:.0%} |")
+    return "\n".join(rows)
+
+
 BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "phase2_shortlist": phase2_shortlist, "phase2_models": phase2_models,
           "india_data": india_data,
           "india_phase1_table": lambda: phase1_table(INDIA.results, INDIA.proc, india=True),
           "india_phase2_summary": lambda: phase2_summary(INDIA.results),
           "india_phase2_shortlist": lambda: phase2_shortlist(INDIA.results, limit=10),
-          "india_transfer": india_transfer}
+          "india_transfer": india_transfer,
+          "phase4_summary": phase4_summary, "phase4_best": phase4_best}
 
 
 def main() -> None:

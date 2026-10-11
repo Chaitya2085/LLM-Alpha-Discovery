@@ -92,7 +92,7 @@ def main() -> None:
         a158[col] = _cs_rank_centered(w.where(m.member.loc[sample]).to_numpy())
     del X
 
-    full_lib = load_library()
+    full_lib = [r for r in load_library() if r.get("phase", 2) != 4]  # Phase 4 has its own tables
     if args.no_seed:
         full_lib = [r for r in full_lib if r.get("provider") != SEED_PROVIDER]
     lib = [r for r in full_lib if r["status"] == "valid"]

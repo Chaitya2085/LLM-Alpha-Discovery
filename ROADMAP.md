@@ -14,8 +14,8 @@ benchmark; India is the product market.
 |---|---|---|
 | 1 | China data, backtester, baselines (paper's market) | **Done** |
 | 2 | LLMs write factors: 4 models, 191 factors, scored | **Done** |
-| 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Built, run on your Mac** |
-| 4 | Feedback loop: LLM agents learn from their results each round | next |
+| 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Done** |
+| 4 | Feedback loop: Researcher + Critic agents, judged weekly after costs | **Built, run on your Mac** |
 | 5 | Prediction model: combined factors, confidence scores, market regimes | |
 | 6 | Honest test on held-out years + leakage experiment | |
 | 7 | AI agent team: the "trading floor" | |
@@ -73,7 +73,7 @@ and **feed mistakes back** to the LLMs.
 
 ---
 
-## Phase 3: Indian market data (built)
+## Phase 3: Indian market data (done)
 
 - **Prices:** NSE's official daily bhavcopy archive (every listed stock, including
   ones later delisted, so no survivorship bias), with Yahoo Finance (`.NS` tickers) as
@@ -94,13 +94,16 @@ and **feed mistakes back** to the LLMs.
 **Needs from you:** run the downloader on your Mac (about 20–40 minutes the first
 time).
 
-## Phase 4: Feedback loop
+## Phase 4: Feedback loop (built)
 
 - **Researcher agents** (one per LLM) propose factors; the **Critic agent** turns scores
-  into plain feedback ("your momentum ideas worked backwards", "this copies ROC5",
-  "this flips daily so costs kill it", "build on these 3").
-- Judged **weekly, long-only, after costs**. Several rounds; we track whether each round
-  improves.
+  into plain feedback ("your momentum ideas worked in reverse", "this ranks stocks like
+  ROC5", "60% of the portfolio changes each week, so costs eat it", "build on these").
+- Judged **weekly, long-only, after costs** (top fifth, held 5 days, vs holding all stocks
+  equally). Several rounds, plus a **control arm** without feedback, so we can measure
+  whether feedback really helps.
+- The Critic is rule-based (reproducible, free); its notes never mention a market or dates.
+- **Needs from you:** `python run_phase4.py --providers gemini groq` (about 12 API calls).
 
 ## Phase 5: Prediction model (accuracy)
 
