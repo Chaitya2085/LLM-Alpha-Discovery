@@ -6,10 +6,10 @@ Worked in REVERSE (the stocks they liked did worse):
 - volume_decay_pullback: Decay(Mean(volume, 5) - Mean(volume, 20), 12) / Mean(volume, 20) * Sign(Mean(close, 10) - Ref(Mean(close, 10), 5))  ->  works in reverse: the stocks it likes do worse (t -2.2); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- vwap_residual_trend: Resi(vwap, 20) * Sign(Mean(volume, 10) - Mean(volume, 30))  ->  before costs +5.0%/yr, after costs -3.6%/yr; 66% of the portfolio is replaced each week
-- volume_ema_cross_rev: Mean(EMA(volume, 45) - EMA(volume, 15), 20) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 20))  ->  before costs +2.3%/yr, after costs -1.2%/yr; 26% of the portfolio is replaced each week
+- vwap_residual_trend: Resi(vwap, 20) * Sign(Mean(volume, 10) - Mean(volume, 30))  ->  before costs +4.9%/yr, after costs -3.7%/yr; 66% of the portfolio is replaced each week
+- volume_ema_cross_rev: Mean(EMA(volume, 45) - EMA(volume, 15), 20) * Sign(Mean(close, 40) - Ref(Mean(close, 40), 20))  ->  before costs +2.2%/yr, after costs -1.2%/yr; 26% of the portfolio is replaced each week
 - std_mean_return_ratio: Std(returns, 20) / Mean(Abs(returns), 20) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))  ->  before costs +1.8%/yr, after costs -2.7%/yr; 35% of the portfolio is replaced each week
-- price_vol_correlation_roll: Corr(close, Log(volume + 1), 40) * CsZscore(Mean(volume, 20))  ->  before costs -3.6%/yr, after costs -7.0%/yr; 26% of the portfolio is replaced each week
+- price_vol_correlation_roll: Corr(close, Log(volume + 1), 40) * CsZscore(Mean(volume, 20))  ->  before costs -3.4%/yr, after costs -6.8%/yr; 26% of the portfolio is replaced each week
 
 Too similar to something known:
 - ema_price_range_pos: Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(EMA(close, 20) - EMA(close, 60))  ->  ranks stocks almost like range_position_trend_slow (corr 0.76)

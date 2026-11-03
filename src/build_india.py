@@ -104,7 +104,9 @@ BONUS_MATCH = 0.06      # no ISIN change: 1:1 bonus (half price) needs a close m
 BONUS_MATCH_BIG = 0.10  # ... looser for big ones (a real crash to a third or less is very rare)
 CANDIDATE_MOVE = 0.60   # without an opening price: drops to 60% or lower count as corporate actions
 SMALL_BONUS = [4 / 3, 1.4, 1.5]   # bonus 1:3, 2:5, 1:2: price to 75% / 71% / 67%
-OPEN_RESET = 0.80       # opening 20%+ below the last close = the exchange reset the base price
+OPEN_RESET = 0.79       # opening more than 21% below the last close = the exchange reset the base price
+                        # (a stock can open exactly 20% down, locked at its lower circuit, on bad news:
+                        # Paytm and IIFL in 2024, many stocks on 23 Mar 2020; that's a real move)
 OPEN_MATCH = 0.05       # an open this close to a bonus ratio is that bonus (overnight news moves it a little)
 WATCH_MOVE = 0.78       # drops to 78% or lower are examined (and listed in corporate_actions.csv)
 OVERRIDES = ROOT / "config" / "india_overrides.csv"

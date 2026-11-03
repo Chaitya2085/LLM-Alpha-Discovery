@@ -10,7 +10,7 @@ Worked in REVERSE (the stocks they liked did worse):
 - vol_clustering_decay: EMA(Decay(Abs(volume - Mean(volume, 20)) / (Std(volume, 20) + 1e-06), 10), 15)  ->  works in reverse: the stocks it likes do worse (t -2.1); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- vol_trend_consistency: EMA(1 - Abs(Slope(volume, 60)) / (Std(volume, 60) + 1e-06), 15)  ->  before costs +2.5%/yr, after costs -1.8%/yr; 33% of the portfolio is replaced each week
+- vol_trend_consistency: EMA(1 - Abs(Slope(volume, 60)) / (Std(volume, 60) + 1e-06), 15)  ->  before costs +2.6%/yr, after costs -1.7%/yr; 33% of the portfolio is replaced each week
 - vol_vol_regime: -EMA(Abs(Std(volume, 20) / Mean(volume, 20) - Std(volume, 60) / Mean(volume, 60)) * Std(returns, 20), 20)  ->  before costs +2.0%/yr, after costs -0.7%/yr; 20% of the portfolio is replaced each week
 
 Too similar to something known:

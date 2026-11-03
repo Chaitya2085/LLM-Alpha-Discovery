@@ -9,11 +9,11 @@ Worked in REVERSE (the stocks they liked did worse):
 - ema_volume_price_gap: EMA((open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1), 20) * CsRank(volume)  ->  works in reverse: the stocks it likes do worse (t -3.1); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- range_gap_cross10_rev: -Mean((high - low) / close, 10) * Sign(open - Ref(close, 1))  ->  before costs +5.3%/yr, after costs -4.6%/yr; 76% of the portfolio is replaced each week
-- pv_vol_price_gap_rev: -(open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1)  ->  before costs +4.5%/yr, after costs -5.6%/yr; 77% of the portfolio is replaced each week
+- range_gap_cross10_rev: -Mean((high - low) / close, 10) * Sign(open - Ref(close, 1))  ->  before costs +5.2%/yr, after costs -4.7%/yr; 76% of the portfolio is replaced each week
+- pv_vol_price_gap_rev: -(open - Ref(close, 1)) / Ref(close, 1) * Log(volume + 1)  ->  before costs +4.4%/yr, after costs -5.7%/yr; 77% of the portfolio is replaced each week
 - rev_oscillator_cross_rev: -Sign(Mean(returns, 5) - Mean(returns, 15)) * (Mean(returns, 5) - Mean(returns, 15))  ->  before costs +3.2%/yr, after costs -6.9%/yr; 77% of the portfolio is replaced each week
-- short_term_reversal_gap_rev: -Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)  ->  before costs +3.0%/yr, after costs -7.1%/yr; 78% of the portfolio is replaced each week
-- corr_ret_vol15_volstd_rev: -Corr(volume, returns, 15) * Std(volume, 15)  ->  before costs +1.3%/yr, after costs -4.3%/yr; 42% of the portfolio is replaced each week
+- short_term_reversal_gap_rev: -Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)  ->  before costs +3.1%/yr, after costs -7.0%/yr; 78% of the portfolio is replaced each week
+- low_volatility_breakout: Mean(Std(returns, 20), 20) / Mean(Std(returns, 5), 5) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 40))  ->  before costs +1.2%/yr, after costs -5.6%/yr; 52% of the portfolio is replaced each week
 
 Too similar to something known:
 - intraday_body_slow: Mean(Abs(close - open) / (high - low + 1e-06), 20) * CsRank(open)  ->  ranks stocks almost like intraday_body_ratio (corr 0.70)
@@ -29,5 +29,4 @@ Broken (fix these mistakes):
 No reliable signal: steady_vol_spike, price_vol_corr_smooth, trend_residual_decay, slow_momentum_decay, volume_spike_sustained, trend_residual_decay, idx_max_min_gap, volatility_skew_decay, price_vs_vwap_gap_slow
 
 Lessons:
-- Your signals change too fast: over half the portfolio is replaced each week. Smooth them (Mean, EMA, Decay) or use longer windows.
 - Several ideas restated known factors; look for different information.

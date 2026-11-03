@@ -10,7 +10,7 @@ Worked in REVERSE (the stocks they liked did worse):
 - vol_tsrank_std: TsRank(Std(returns, 10), 60) * CsRank(volume)  ->  works in reverse: the stocks it likes do worse (t -2.4); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
-- rev_overnight_gap: -(open / Ref(close, 1) - 1) * EMA(volume / Mean(volume, 20), 5)  ->  before costs +4.6%/yr, after costs -5.5%/yr; 78% of the portfolio is replaced each week
+- rev_overnight_gap: -(open / Ref(close, 1) - 1) * EMA(volume / Mean(volume, 20), 5)  ->  before costs +4.5%/yr, after costs -5.6%/yr; 78% of the portfolio is replaced each week
 - rev_sign_range: -Sign(returns) * (close - TsMin(low, 10)) / (TsMax(high, 10) - TsMin(low, 10))  ->  before costs +2.2%/yr, after costs -8.0%/yr; 78% of the portfolio is replaced each week
 - rev_gap_fade_low_vol: -Pct(open, 1) * CsRank(1 / Std(returns, 20))  ->  before costs +1.6%/yr, after costs -8.3%/yr; 76% of the portfolio is replaced each week
 

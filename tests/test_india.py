@@ -152,6 +152,7 @@ def test_corporate_action_rules():
     cols["DEMERGE"] = stock(30, 0.45, 0.45)           # demerger: off any ratio -> return-neutral
     cols["CRASH"] = stock(30, 0.5, 0.5)               # looks like a 1:1 bonus, but listed as 'keep'
     cols["REALCRASH"] = stock(30, 0.45, 0.95)         # opened near yesterday's close, then fell 55%
+    cols["CIRCUIT"] = stock(30, 0.80, 0.80)           # opened locked at the -20% lower circuit (bad news)
     mk = lambda i: pd.DataFrame({k: v[i] for k, v in cols.items()}, index=days)  # noqa: E731
     close, open_, isin = mk(0), mk(1), mk(2)
     vol = pd.DataFrame(1e5, index=days, columns=close.columns)
@@ -165,11 +166,13 @@ def test_corporate_action_rules():
     assert got["DEMERGE"][0] == "other" and got["DEMERGE"][2]
     assert not got["CRASH"][2]
     assert got["REALCRASH"][:1] == ("kept",) and not got["REALCRASH"][2]
+    assert "CIRCUIT" not in got or not got["CIRCUIT"][2], got["CIRCUIT"]
     adj = close * factor
     assert abs(adj["SPLIT"].iloc[29] / adj["SPLIT"].iloc[30] - 1 / 1.05) < 1e-9   # +5% left after 1:10
     assert adj["DEMERGE"].pct_change().abs().max() < 1e-4
     assert adj["BADDAY"].pct_change().min() < -0.3 and adj["CRASH"].pct_change().min() < -0.45
     assert adj["REALCRASH"].pct_change().min() < -0.5
+    assert abs(adj["CIRCUIT"].pct_change().min() + 0.2) < 1e-9
 
 
 def test_build_adjusts_splits_and_builds_point_in_time_universe():

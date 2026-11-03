@@ -3,20 +3,20 @@ Results of your previous round. Each factor was tested the way it will be used: 
 Scoreboard: 60 proposed; 5 worked after costs (0 strongly), 2 worked in reverse, 3 too costly, 28 copies, 21 no reliable signal, 1 broken or duplicate.
 
 Build on these (they worked after costs):
-- quiet_accumulation_spread: EMA(CsRank(returns) * (1 - CsRank(volume)), 20)  ->  +5.2%/yr after costs, beats the average in 54% of weeks (t 2.7)
+- quiet_accumulation_spread: EMA(CsRank(returns) * (1 - CsRank(volume)), 20)  ->  +5.3%/yr after costs, beats the average in 53% of weeks (t 2.7)
 - low_volatility_rank: -EMA(CsRank(Std(returns, 60)), 20)  ->  +5.1%/yr after costs, beats the average in 51% of weeks (t 3.7)
 - volatility_stability: -EMA(Std(Std(returns, 5), 30) / Std(returns, 30), 10)  ->  +3.6%/yr after costs, beats the average in 52% of weeks (t 3.4)
-- tail_risk_kurtosis: -Kurt(returns, 60)  ->  +2.8%/yr after costs, beats the average in 54% of weeks (t 3.0)
+- tail_risk_kurtosis: -Kurt(returns, 60)  ->  +2.7%/yr after costs, beats the average in 54% of weeks (t 3.0)
 - range_volume_correlation_penalty: -Corr((high - low) / close, volume, 30)  ->  +1.8%/yr after costs, beats the average in 51% of weeks (t 4.4)
 
 Worked in REVERSE (the stocks they liked did worse):
-- range_to_return_vol_ratio: -Mean((high - low) / close, 30) / Std(returns, 30)  ->  works in reverse: the stocks it likes do worse (t -3.7); the opposite idea may be right
+- range_to_return_vol_ratio: -Mean((high - low) / close, 30) / Std(returns, 30)  ->  works in reverse: the stocks it likes do worse (t -3.8); the opposite idea may be right
 - volume_persistence: EMA(Corr(volume, Ref(volume, 1), 30), 10)  ->  works in reverse: the stocks it likes do worse (t -2.4); the opposite idea may be right
 
 Real signal but too costly (the portfolio changes too much each week):
 - shadow_asymmetry: EMA((Min(open, close) - low - (high - Max(open, close))) / (high - low), 15)  ->  before costs +2.7%/yr, after costs -3.6%/yr; 49% of the portfolio is replaced each week
 - intraday_range_skew_aversion: -Skew((high - low) / vwap, 40)  ->  before costs +2.5%/yr, after costs -1.5%/yr; 30% of the portfolio is replaced each week
-- reversal_gap_reaction: -EMA((open - Ref(close, 1)) / Mean(high - low, 10), 3)  ->  before costs -0.3%/yr, after costs -9.9%/yr; 74% of the portfolio is replaced each week
+- reversal_gap_reaction: -EMA((open - Ref(close, 1)) / Mean(high - low, 10), 3)  ->  before costs -0.4%/yr, after costs -10.0%/yr; 74% of the portfolio is replaced each week
 
 Too similar to something known:
 - path_smoothness_momentum: Mean(returns, 40) / Mean(Abs(returns), 40)  ->  ranks stocks almost like MA60 (corr 0.90)
