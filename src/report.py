@@ -269,6 +269,76 @@ def phase5_regimes(cfg=INDIA) -> str | None:
     return "\n".join(rows)
 
 
+def phase6_table(cfg=INDIA) -> str | None:
+    f = cfg.results / "phase6_summary.json"
+    if not f.exists():
+        return None
+    s = json.loads(f.read_text())
+    runs_f = cfg.results / "phase6_runlog.json"
+    runs = json.loads(runs_f.read_text()) if runs_f.exists() else []
+    yrs = s["years"]
+    rows = ["| Model (frozen design) | Verdict | Return / yr | Index / yr | Excess after costs | Info ratio | "
+            "Chance the edge is real, after counting tries | Weeks beating index | Max drawdown | Rank IC | "
+            "Confidence gap |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for name, v in s["variants"].items():
+        b, vd, d = v["book"], v["verdict"], v["design"]
+        rows.append(f"| {name} ({d['stocks']} stocks, keep top {d['keep_zone']}) | **{vd['verdict']}** | "
+                    f"{pct(b['ann_return'])} | {pct(b['bench_ann_return'])} | {pct(b['excess_ann'], signed=True)} | "
+                    f"{num(b['info_ratio'], '{:.2f}')} | {vd['dsr']:.0%} | {b['weekly_hit_rate']:.0%} | "
+                    f"{pct(b['max_drawdown'])} | {num(v['weekly_rank_ic'])} | {v['calibration']['ece']:.1%} |")
+    by_year = ["", "| Excess over the index, after costs | " + " | ".join(str(y) for y in yrs) + " |",
+               "|---|" + "---|" * len(yrs)]
+    for name, v in s["variants"].items():
+        by_year.append(f"| {name} | " + " | ".join(pct(v["by_year"].get(str(y), v["by_year"].get(y)), signed=True)
+                                                  for y in yrs) + " |")
+    head = (f"Held-out years {yrs[0]}–{yrs[-1]} (the last is year-to-date). Exam runs so far: **{len(runs)}**"
+            + (f" (first on {runs[0]['ran_at'][:10]})" if runs else "") + ". \"Chance the edge is real\" is the "
+            "Deflated Sharpe Ratio: the probability the after-cost edge beats what luck alone would give the "
+            "best of the trading designs tried in Phase 5.")
+    return "\n".join([head, ""] + rows + by_year)
+
+
+def leakage_table(cfg=INDIA) -> str | None:
+    f = cfg.results / "leakage_summary.json"
+    if not f.exists():
+        return None
+    s = json.loads(f.read_text())
+    rows = ["| Model | Knowledge cutoff | Weekly IC before cutoff | after cutoff | Other models, same split | "
+            "Extra drop (z) | Result |", "|---|---|---|---|---|---|---|"]
+    for name, v in s["models"].items():
+        if "ic_before" not in v:
+            rows.append(f"| {name} | {v['cutoff']} | | | | | {v['status']} |")
+            continue
+        rows.append(f"| {name} | {v['cutoff']} | {num(v['ic_before'], '{:+.4f}')} | {num(v['ic_after'], '{:+.4f}')} | "
+                    f"{num(v['placebo_ic_before'], '{:+.4f}')} → {num(v['placebo_ic_after'], '{:+.4f}')} | "
+                    f"{num(v['extra_drop'], '{:+.4f}')} ({num(v['z'], '{:+.1f}')}) | **{v['status']}** |")
+    a = s["all_factors"]
+    tail = ["", f"All {a['n']} factors: average weekly IC {num(a['ic_discovery'], '{:+.4f}')} in 2014–2020, "
+                 f"{num(a['ic_holdout'], '{:+.4f}')} from 2021 (in the direction each worked originally)."]
+    if s["models_without_cutoff"]:
+        tail.append("No cutoff entered yet for: " + ", ".join(s["models_without_cutoff"]) +
+                    " (add them to `config/llm_cutoffs.csv`).")
+    return "\n".join(rows + tail)
+
+
+def ledger_status() -> str | None:
+    import csv
+    c = ROOT / "ledger" / "commitments.csv"
+    if not c.exists():
+        return None
+    commits = list(csv.DictReader(c.open()))
+    revealed = list((ROOT / "ledger" / "revealed").glob("*.csv")) if (ROOT / "ledger" / "revealed").exists() else []
+    lines = [f"- **{len(commits)}** weekly predictions fingerprinted, from {commits[0]['as_of']} to "
+             f"{commits[-1]['as_of']}; **{len(revealed)}** revealed (31+ days old)"]
+    sf = ROOT / "ledger" / "scores.csv"
+    if sf.exists():
+        sc = pd.read_csv(sf)
+        for v, g in sc.groupby("variant"):
+            lines.append(f"- {v}: {len(g)} revealed weeks, beat the Nifty 200 in {g['beat_index'].mean():.0%}, "
+                         f"average excess {pct(g['excess'].mean(), signed=True)} a week")
+    return "\n".join(lines)
+
+
 BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "phase2_shortlist": phase2_shortlist, "phase2_models": phase2_models,
           "india_data": india_data,
@@ -277,7 +347,8 @@ BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "india_phase2_shortlist": lambda: phase2_shortlist(INDIA.results, limit=10),
           "india_transfer": india_transfer,
           "phase4_summary": phase4_summary, "phase4_best": phase4_best,
-          "phase5_table": phase5_table, "phase5_grid": phase5_grid, "phase5_regimes": phase5_regimes}
+          "phase5_table": phase5_table, "phase5_grid": phase5_grid, "phase5_regimes": phase5_regimes,
+          "phase6_table": phase6_table, "leakage_table": leakage_table, "ledger_status": ledger_status}
 
 
 def main() -> None:

@@ -1,0 +1,8 @@
+# Knowledge cutoff of each LLM that wrote factors (used by src/leakage_test.py).
+# Copy the date from the model's official model card. Leave "unknown" until you have checked it.
+# The model name must match the library's "provider: model" label exactly.
+model,cutoff,source
+groq: openai/gpt-oss-120b,2024-06-01,gpt-oss model card (June 2024); also listed at cloudprice.net
+gemini: gemini-3.8-flash,unknown,check Google's model card
+openrouter: nvidia/nemotron-3-ultra-550b-a55b:free,unknown,check NVIDIA's model card
+seed: claude (chat),unknown,the Claude model used in the chat session

@@ -16,8 +16,8 @@ benchmark; India is the product market.
 | 2 | LLMs write factors: 4 models, 191 factors, scored | **Done** |
 | 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Done** |
 | 4 | Feedback loop: Researcher + Critic agents, judged weekly after costs | **Done** |
-| 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Built, run on your Mac** |
-| 6 | Honest test on held-out years + leakage experiment | |
+| 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Done** |
+| 6 | Final exam on held-out years, leakage test, prediction ledger | **Built, run on your Mac** |
 | 7 | AI agent team: the "trading floor" | |
 | 8 | Web app: war room, research lab, track record (English and Hindi) | |
 | 9 | Compliance review, deploy, demo video, final report | |
@@ -108,7 +108,13 @@ after costs; without feedback, under 1% (23 vs 2 factors). Biggest gain in the f
 - The Critic is rule-based (reproducible, free); its notes never mention a market or dates.
 - **Needs from you:** `python run_phase4.py --providers gemini groq` (about 12 API calls).
 
-## Phase 5: Prediction model (built)
+## Phase 5: Prediction model (done)
+
+**Result (India, 2017–2020, after costs):** best version (Alpha158 only, 40 stocks, keep while in
+the top 120, weekly) +2.9% a year over the Nifty 200, information ratio 0.32; with LLM factors
++1.3%. Rank IC 0.064, confidence within 0.5 points. Fixing the last data error (lower-circuit opens)
+lowered the result from +5.0%, which is why the data checks matter.
+
 
 - One weekly model: Alpha158 + the LLM factors that passed + market regime features; LightGBM
   learns which stocks beat the median stock, walk-forward by year (test 2017–2020).
@@ -119,12 +125,15 @@ after costs; without feedback, under 1% (23 vs 2 factors). Biggest gain in the f
 - Alpha158-only vs Alpha158 + LLM factors, to measure what the LLM factors add.
 - Nothing after 2020 is loaded; settings are fixed before Phase 6.
 
-## Phase 6: Honest test
+## Phase 6: Final exam (built)
 
-- Run once on untouched later years, for India and China, with costs and local rules.
-- **Leakage experiment**: LLMs trained before vs after the test years (older open models
-  via Ollama), plus hidden tickers and dates. **Deflated Sharpe** for the number of ideas
-  tried. Compare with the paper's +53.17% claim.
+- Settings, factor list and pass marks frozen in `config/phase6_frozen.json` and committed before
+  the exam; one logged run on 2021 onward; both versions (with and without LLM factors).
+- Verdict by the **Deflated Sharpe Ratio**, counting the 16 trading designs tried in Phase 5.
+- **Leakage test:** each model's factors before vs after its knowledge cutoff, against the other
+  models over the same dates. Older open models via Ollama can be added later as a stronger test.
+- **Prediction ledger:** weekly predictions fingerprinted before the week (public), revealed after
+  31 days (SEBI's 30-day rule), scored, and verifiable by anyone.
 
 ## Phase 7: AI agent team, the "trading floor"
 

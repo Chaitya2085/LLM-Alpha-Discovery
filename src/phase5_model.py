@@ -90,6 +90,26 @@ def labels(m) -> tuple[pd.DataFrame, pd.Series]:
     return fwd5, bench5
 
 
+def targets(m):
+    """Everything the model learns from and is judged on, from one market:
+    fwd5/bench5 (5-day returns), y (beats the index), y_rank (beats the median stock),
+    yex_long (excess over the index) and label_end (the day each label is known)."""
+    fwd5, bench5 = labels(m)
+    yex = (fwd5.sub(bench5, axis=0)).where(m.member)
+    y = _long((yex > 0).astype(float).where(yex.notna())).rename("y")
+    # the model learns to rank: "beats the median stock this week" (always ~50%, whatever the market
+    # does); its scores are then calibrated to the question users care about, "beats the index"
+    rel = fwd5.where(m.member)
+    rel = rel.sub(rel.median(axis=1), axis=0)
+    y_rank = _long((rel > 0).astype(float).where(rel.notna())).rename("y_rank")
+    yex_long = _long(yex).rename("yex")
+    pos = pd.Series(np.arange(len(m.dates)), index=m.dates)
+    end_pos = (pos + HOLD + 1).clip(upper=len(m.dates) - 1)
+    label_end = pd.Series(m.dates[end_pos.to_numpy()], index=m.dates)
+    label_end[pos + HOLD + 1 >= len(m.dates)] = pd.Timestamp("2262-01-01")   # no label: never used
+    return fwd5, bench5, y, y_rank, yex_long, label_end
+
+
 def regimes(m) -> pd.DataFrame:
     """Market-wide state each day, from past data only."""
     lvl = m.index_close.ffill()
@@ -399,19 +419,7 @@ def run(cfg, years: list[int], top: int = 20, min_prob: float = 0.50, cutoff: st
     t0 = time.time()
     m = load_cut(cfg, cutoff)
     assert m.dates[-1] <= pd.Timestamp(cutoff)
-    fwd5, bench5 = labels(m)
-    yex = (fwd5.sub(bench5, axis=0)).where(m.member)
-    y = _long((yex > 0).astype(float).where(yex.notna())).rename("y")
-    # the model learns to rank: "beats the median stock this week" (always ~50%, whatever the market
-    # does); its scores are then calibrated to the question users care about, "beats the index"
-    rel = fwd5.where(m.member)
-    rel = rel.sub(rel.median(axis=1), axis=0)
-    y_rank = _long((rel > 0).astype(float).where(rel.notna())).rename("y_rank")
-    yex_long = _long(yex).rename("yex")
-    pos = pd.Series(np.arange(len(m.dates)), index=m.dates)
-    end_pos = (pos + HOLD + 1).clip(upper=len(m.dates) - 1)
-    label_end = pd.Series(m.dates[end_pos.to_numpy()], index=m.dates)
-    label_end[pos + HOLD + 1 >= len(m.dates)] = pd.Timestamp("2262-01-01")   # no label: never used
+    fwd5, bench5, y, y_rank, yex_long, label_end = targets(m)
     reg = regimes(m)
     factors = select_llm_factors(cfg)
     log(f"  {len(factors)} LLM factors passed earlier phases; building features ...")

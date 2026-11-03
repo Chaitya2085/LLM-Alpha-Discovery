@@ -1,0 +1,372 @@
+{
+  "market": "india",
+  "frozen_at": "2026-11-03T02:49:01+00:00",
+  "holdout_start": "2021-01-01",
+  "variants": [
+    "Alpha158 only",
+    "Alpha158 + LLM factors"
+  ],
+  "designs": {
+    "Alpha158 only": {
+      "stocks": 40,
+      "keep_zone": 120,
+      "trade_every_weeks": 1
+    },
+    "Alpha158 + LLM factors": {
+      "stocks": 40,
+      "keep_zone": 120,
+      "trade_every_weeks": 1
+    }
+  },
+  "llm_factors": [
+    {
+      "id": "F0028",
+      "name": "low_parkinson_vol",
+      "expression": "-Mean(Log(high / low), 20)"
+    },
+    {
+      "id": "F0146",
+      "name": "rev_sign_range",
+      "expression": "-Sign(returns) * (close - TsMin(low, 10)) / (TsMax(high, 10) - TsMin(low, 10))"
+    },
+    {
+      "id": "F0012",
+      "name": "stable_volatility",
+      "expression": "-Std(Std(returns, 10), 40)"
+    },
+    {
+      "id": "F0010",
+      "name": "lottery_avoidance",
+      "expression": "-TsMax(returns, 20)"
+    },
+    {
+      "id": "F0038",
+      "name": "gap_volatility",
+      "expression": "-Std(open / Ref(close, 1) - 1, 20)"
+    },
+    {
+      "id": "F0056",
+      "name": "volume_weighted_volatility_ratio",
+      "expression": "-Std(returns * volume / Mean(volume, 20), 30)"
+    },
+    {
+      "id": "F0184",
+      "name": "rev_delta_volume_cross",
+      "expression": "Delta(close, 1) * (1 - CsRank(volume))"
+    },
+    {
+      "id": "F0195",
+      "name": "rev_short_term_overshoot",
+      "expression": "-Mean(Sign(Delta(close, 1)) * Abs(Delta(close, 1) - Mean(Delta(close, 1), 3)), 5)"
+    },
+    {
+      "id": "F0015",
+      "name": "amihud_illiquidity",
+      "expression": "CsRank(Mean(Abs(returns) / (volume * vwap), 20))"
+    },
+    {
+      "id": "F0098",
+      "name": "shadow_asymmetry",
+      "expression": "EMA((Min(open, close) - low - (high - Max(open, close))) / (high - low), 15)"
+    },
+    {
+      "id": "F0210",
+      "name": "intraday_high_low_break",
+      "expression": "Sign(high - Ref(high, 1)) * (high - Ref(high, 1)) / (low - Ref(low, 1) + 1e-06)"
+    },
+    {
+      "id": "F0173",
+      "name": "range_gap_cross10",
+      "expression": "Mean((high - low) / close, 5) * Sign(open - Ref(close, 1))"
+    },
+    {
+      "id": "F0018",
+      "name": "range_volume_corr",
+      "expression": "-Corr(high / low, volume, 30)"
+    },
+    {
+      "id": "F0209",
+      "name": "intraday_gap_momentum",
+      "expression": "(Ref(open, 1) - Ref(close, 1)) / Ref(close, 1) * TsRank(volume, 10)"
+    },
+    {
+      "id": "F0143",
+      "name": "mom_tsrank_slope",
+      "expression": "TsRank(Slope(close, 20), 60) * CsRank(volume)"
+    },
+    {
+      "id": "F0139",
+      "name": "intraday_body_conviction",
+      "expression": "Abs(close - open) / (high - low) * CsRank(volume)"
+    },
+    {
+      "id": "F0234",
+      "name": "short_term_reversal_gap",
+      "expression": "Sign(open - Ref(close, 1)) * (open - Ref(close, 1)) / (Ref(close, 1) + 1e-06)"
+    },
+    {
+      "id": "F0150",
+      "name": "vol_tsrank_std",
+      "expression": "TsRank(Std(returns, 10), 60) * CsRank(volume)"
+    },
+    {
+      "id": "F0228",
+      "name": "intraday_gap_open_close",
+      "expression": "(open - Ref(close, 1)) / Ref(close, 1) * TsRank(volume, 10)"
+    },
+    {
+      "id": "F0017",
+      "name": "pv_rank_divergence",
+      "expression": "-Corr(CsRank(returns), CsRank(volume), 20)"
+    },
+    {
+      "id": "F0197",
+      "name": "rev_oscillator_cross",
+      "expression": "Sign(Mean(returns, 5) - Mean(returns, 15)) * (Mean(returns, 5) - Mean(returns, 15))"
+    },
+    {
+      "id": "F0035",
+      "name": "abs_return_volume_corr",
+      "expression": "-Corr(Abs(returns), volume, 40)"
+    },
+    {
+      "id": "F0183",
+      "name": "rev_gap_open_close",
+      "expression": "Pct(open, 1) - Pct(close, 1)"
+    },
+    {
+      "id": "F0252",
+      "name": "intraday_to_interday_vol_ratio",
+      "expression": "EMA(Mean((high - low) / close, 30) / Std(returns, 30), 10)"
+    },
+    {
+      "id": "F0253",
+      "name": "volume_anti_persistence",
+      "expression": "-EMA(Corr(volume, Ref(volume, 1), 40), 15)"
+    },
+    {
+      "id": "F0259",
+      "name": "volatility_volume_coupling_penalty",
+      "expression": "-EMA(Corr(Std(returns, 5), volume, 40), 15)"
+    },
+    {
+      "id": "F0261",
+      "name": "smoothed_shadow_asymmetry",
+      "expression": "EMA(Mean((Min(open, close) - low - (high - Max(open, close))) / (high - low), 40), 20)"
+    },
+    {
+      "id": "F0524",
+      "name": "tail_risk_skew_preference",
+      "expression": "-EMA(CsRank(Kurt(returns, 60)) - CsRank(Skew(returns, 60)), 15)"
+    },
+    {
+      "id": "F0528",
+      "name": "lottery_max_penalty",
+      "expression": "-EMA(CsRank(TsMax(returns, 20)), 15)"
+    },
+    {
+      "id": "F0267",
+      "name": "vwap_intraday_range_position",
+      "expression": "EMA(Mean((vwap - low) / (high - low), 40), 20)"
+    },
+    {
+      "id": "F0268",
+      "name": "volume_weighted_lower_shadow",
+      "expression": "EMA(Mean((Min(open, close) - low) / (high - low) * volume / Mean(volume, 40), 40), 20)"
+    },
+    {
+      "id": "F0276",
+      "name": "intraday_to_overnight_gap_ratio",
+      "expression": "EMA(Mean((high - low) / Abs(open - Ref(close, 1)), 30), 15)"
+    },
+    {
+      "id": "F0542",
+      "name": "range_stability",
+      "expression": "-EMA(CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)"
+    },
+    {
+      "id": "F0282",
+      "name": "downside_volume_correlation_premium",
+      "expression": "EMA(Corr(volume, Min(returns, 0), 40) - Corr(volume, Max(returns, 0), 40), 20)"
+    },
+    {
+      "id": "F0284",
+      "name": "intraday_to_true_range_share",
+      "expression": "EMA(Mean((high - low) / (Max(high, Ref(close, 1)) - Min(low, Ref(close, 1))), 40), 20)"
+    },
+    {
+      "id": "F0296",
+      "name": "close_vwap_convergence",
+      "expression": "-EMA(Mean(Abs(close - vwap) / (high - low), 40), 20)"
+    },
+    {
+      "id": "F0550",
+      "name": "range_stability_60",
+      "expression": "-EMA(CsRank(Std((high - low) / close, 60) / Mean((high - low) / close, 60)), 20)"
+    },
+    {
+      "id": "F0556",
+      "name": "stable_trend_momentum",
+      "expression": "EMA(CsRank(Mean(returns, 40) / Std(returns, 40)) - CsRank(Std((high - low) / close, 30) / Mean((high - low) / close, 30)), 15)"
+    },
+    {
+      "id": "F0341",
+      "name": "intraday_up_candle_persistence",
+      "expression": "EMA(Mean(Sign(close - open), 20), 10)"
+    },
+    {
+      "id": "F0609",
+      "name": "vwap_range_position",
+      "expression": "Decay(Mean((vwap - low) / (high - low + 1e-06), 20), 10)"
+    },
+    {
+      "id": "F0354",
+      "name": "price_range_position_slow",
+      "expression": "Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 15) * Sign(Mean(close, 20) - Ref(Mean(close, 20), 60))"
+    },
+    {
+      "id": "F0356",
+      "name": "range_position_trend_slow",
+      "expression": "Mean((close - TsMin(low, 30)) / (TsMax(high, 30) - TsMin(low, 30) + 1e-06), 20) * Sign(Mean(close, 30) - Ref(Mean(close, 30), 30))"
+    },
+    {
+      "id": "F0429",
+      "name": "vol_surge_flip",
+      "expression": "-EMA(volume / Mean(volume, 20) * CsRank(volume), 10)"
+    },
+    {
+      "id": "F0440",
+      "name": "kurtosis_vol_norm",
+      "expression": "EMA(Kurt(volume, 30) / (Std(volume, 30) + 1e-06), 10)"
+    },
+    {
+      "id": "F0446",
+      "name": "vol_persistence_weekly",
+      "expression": "-EMA(Corr(volume, Ref(volume, 5), 60), 15)"
+    },
+    {
+      "id": "F0463",
+      "name": "price_vol_dispersion",
+      "expression": "-EMA(Std(close / vwap, 20) * Mean(volume, 20) / (volume + 1e-06), 15)"
+    }
+  ],
+  "model_params": {
+    "objective": "binary",
+    "metric": "auc",
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "max_depth": 6,
+    "min_data_in_leaf": 300,
+    "feature_fraction": 0.7,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 1,
+    "lambda_l2": 10.0,
+    "verbose": -1,
+    "seed": 7,
+    "num_threads": 2
+  },
+  "train_start": "2014-04-01",
+  "hold_days": 5,
+  "trials": {
+    "count": 16,
+    "weekly_sharpe_variance": 0.003216205365837193,
+    "what": "trading designs x model versions tried in Phase 5 (2017-2020)"
+  },
+  "pass_marks": {
+    "real_edge_dsr": 0.95,
+    "promising_psr": 0.95,
+    "ic_t_min": 2.0,
+    "calibration_gap_max": 0.05
+  },
+  "phase5_reference": {
+    "Alpha158 only": {
+      "Top 20": {
+        "weeks": 197,
+        "ann_return": 0.14293598612185443,
+        "bench_ann_return": 0.14168133328984744,
+        "excess_ann": 0.015147581628093681,
+        "gross_excess_ann": 0.07703286081591094,
+        "info_ratio": 0.1343977661387741,
+        "weekly_hit_rate": 0.5025380710659898,
+        "max_drawdown": -0.49262983906200075,
+        "avg_turnover": 0.47602040816326535,
+        "cost_ann": 0.06188265306122448,
+        "avg_stocks": 20.0,
+        "weeks_invested_pct": 1.0
+      },
+      "Confident only (>= 50%)": {
+        "weeks": 197,
+        "ann_return": 0.13672392019103863,
+        "bench_ann_return": 0.14168133328984744,
+        "excess_ann": 0.00032966624593421125,
+        "gross_excess_ann": 0.05777382868248244,
+        "info_ratio": 0.004435950587060246,
+        "weekly_hit_rate": 0.36548223350253806,
+        "max_drawdown": -0.41739515850736053,
+        "avg_turnover": 0.43903061224489803,
+        "cost_ann": 0.0574188775510204,
+        "avg_stocks": 15.025380710659899,
+        "weeks_invested_pct": 0.751269035532995
+      },
+      "Chosen: 40 stocks, keep top 120, trade every 1 wk": {
+        "weeks": 197,
+        "ann_return": 0.16367118639247402,
+        "bench_ann_return": 0.14168133328984744,
+        "excess_ann": 0.028589416429419676,
+        "gross_excess_ann": 0.058799568713683664,
+        "info_ratio": 0.32140472706299583,
+        "weekly_hit_rate": 0.5025380710659898,
+        "max_drawdown": -0.42154694696915485,
+        "avg_turnover": 0.23112244897959183,
+        "cost_ann": 0.030045918367346935,
+        "avg_stocks": 40.0,
+        "weeks_invested_pct": 1.0
+      }
+    },
+    "Alpha158 + LLM factors": {
+      "Top 20": {
+        "weeks": 197,
+        "ann_return": 0.141336143702965,
+        "bench_ann_return": 0.14168133328984744,
+        "excess_ann": 0.010508195425933259,
+        "gross_excess_ann": 0.05965743400461348,
+        "info_ratio": 0.10516695655584993,
+        "weekly_hit_rate": 0.5279187817258884,
+        "max_drawdown": -0.4594882244830385,
+        "avg_turnover": 0.37755102040816324,
+        "cost_ann": 0.04908163265306123,
+        "avg_stocks": 20.0,
+        "weeks_invested_pct": 1.0
+      },
+      "Confident only (>= 50%)": {
+        "weeks": 197,
+        "ann_return": 0.11175921336862449,
+        "bench_ann_return": 0.14168133328984744,
+        "excess_ann": -0.021985881705452546,
+        "gross_excess_ann": 0.03052355991891295,
+        "info_ratio": -0.3045916630129024,
+        "weekly_hit_rate": 0.49746192893401014,
+        "max_drawdown": -0.4561010171922938,
+        "avg_turnover": 0.4012755102040816,
+        "cost_ann": 0.052458979591836735,
+        "avg_stocks": 15.766497461928934,
+        "weeks_invested_pct": 1.0
+      },
+      "Chosen: 40 stocks, keep top 120, trade every 1 wk": {
+        "weeks": 197,
+        "ann_return": 0.1465921825926626,
+        "bench_ann_return": 0.14168133328984744,
+        "excess_ann": 0.01287569537341929,
+        "gross_excess_ann": 0.037196253749053824,
+        "info_ratio": 0.15448650332951058,
+        "weekly_hit_rate": 0.5380710659898477,
+        "max_drawdown": -0.44116563325103053,
+        "avg_turnover": 0.18558673469387754,
+        "cost_ann": 0.024126275510204083,
+        "avg_stocks": 40.0,
+        "weeks_invested_pct": 1.0
+      }
+    }
+  },
+  "fingerprint": "b602c7c9ec6874a2267a5bcd4be8839d2deffdef1c8c623b628132368f8a8044"
+}

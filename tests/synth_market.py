@@ -2,7 +2,7 @@
 
 One planted effect: heavily traded stocks drift up (about 15%/yr spread between the most and
 least traded), so `Mean(volume, 20)` predicts returns and `-Mean(volume, 20)` works in reverse.
-Everything else is noise.
+Everything else is noise. `drift_until` switches the effect off on a date (for the leakage test).
 """
 from __future__ import annotations
 
@@ -16,7 +16,8 @@ import markets
 
 
 def make_market(root: Path, name: str = "synth", n: int = 120, seed: int = 1,
-                start: str = "2015-06-01", end: str = "2020-06-30", drift_size: float = 0.0006):
+                start: str = "2015-06-01", end: str = "2020-06-30", drift_size: float = 0.0006,
+                drift_until: str | None = None):
     rng = np.random.default_rng(seed)
     dates = pd.bdate_range(start, end)
     T = len(dates)
@@ -24,6 +25,8 @@ def make_market(root: Path, name: str = "synth", n: int = 120, seed: int = 1,
     liq = rng.normal(0, 1, n)                          # hidden trait: liquidity
     drift = drift_size * liq                           # liquid stocks drift up
     ret = drift + rng.normal(0, 0.015, (T, n))
+    if drift_until:                                    # the effect stops on this date
+        ret[dates >= pd.Timestamp(drift_until)] -= drift
     close = 100 * np.exp(np.cumsum(np.log1p(ret), axis=0))
     opn = close * (1 + rng.normal(0, 0.003, (T, n)))
     high = np.maximum(opn, close) * (1 + np.abs(rng.normal(0, 0.005, (T, n))))
