@@ -31,3 +31,5 @@ jobs:
         run: python tests/test_phase6.py
       - name: Phase 7 tests
         run: python tests/test_phase7.py
+      - name: Phase 8 app tests
+        run: python tests/test_phase8.py

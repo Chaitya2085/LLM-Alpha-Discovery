@@ -8,3 +8,5 @@ venv/
 .env
 ledger/private/
 results/*/team/private/
+web/node_modules/
+web/dist/

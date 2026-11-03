@@ -33,8 +33,8 @@ EMNLP 2025, [arXiv:2409.06289](https://arxiv.org/abs/2409.06289)), which reports
 | 4 | Feedback loop: Researcher and Critic agents, judged weekly after costs | **Done** |
 | 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Done** |
 | 6 | Final exam on held-out years, leakage test, prediction ledger | **Done** |
-| 7 | AI agent team: the "trading floor" (activity log, approvals, explanations, compliance) | **Built** |
-| 8 | Web app: war room, research lab, track record (English and Hindi) | |
+| 7 | AI agent team: the "trading floor" (activity log, approvals, explanations, compliance) | **Done** |
+| 8 | Web app: war room, track record, this week (local version built); research lab and public version next | **In progress** |
 | 9 | Compliance review, deploy, demo video, final report | |
 
 The full plan, with accuracy targets, SEBI rules and what each phase delivers, is in
@@ -599,6 +599,29 @@ data; a full weekly run writes the ledger, explanations and both reports, keeps 
 public log, and runs research only after approval; an LLM that writes "buy, target price" or that
 fails is replaced by template text; the Compliance Officer blocks a bad report.
 
+## Phase 8: the app (local version)
+
+![The war room](figures/app_war_room.png)
+
+`python run_app.py` opens the project as a web app on your own computer (http://127.0.0.1:8000).
+The first time it builds the page, which needs Node.js. It only answers requests from your computer,
+because Personal mode shows stock names.
+
+| Page | What it shows |
+|---|---|
+| **War room** | Every agent at its desk with its latest action and status; buttons to run the team; approval cards you answer with one click; "Ask the Chief Strategist"; the activity feed (stock names hidden unless you tick the box) |
+| **Track record** | The final exam: growth of ₹1 lakh against the Nifty 200 and against holding all 200 stocks equally, the verdict, and the live ledger (sealed weeks and, after 31 days, their results) |
+| **This week** | The top 10 stocks with the model's chance of beating the index, plain-English reasons, what would change the view, and risk flags |
+
+The backend (`app/server.py`, FastAPI) only reads what the team, the exam and the ledger wrote; its
+three actions are answering an approval card, asking a question, and starting `run_team.py`. The page
+(`web/`, React + Vite) is built into `web/dist/`, which is not committed. A public version (Learn
+mode and track record only) comes after the compliance review in Phase 9.
+
+**Checks:** 6 Phase 8 tests: the overview and feed read the team's files, stock names only appear when
+asked for, requests from other addresses are refused, approval cards can be answered once, the run
+button starts one team at a time, and the Ask box and pages work before any results exist.
+
 ## Design choices that keep results honest
 
 - **Point-in-time universe:** a stock is eligible only on days it was actually in the
@@ -640,6 +663,9 @@ run_phase5.py            tests -> weekly model, walk-forward to 2020 -> charts -
 run_phase6.py            --freeze; then tests -> final exam -> leakage test -> chart -> README tables
 run_ledger.py            weekly: latest NSE data -> record -> reveal -> score -> verify -> README
 run_team.py              Phase 7: the agent team (run, log, approvals, approve/reject, ask)
+run_app.py               Phase 8: the local web app (builds the page once, then opens it)
+app/server.py            the app's backend: reads team, exam and ledger files; approve, ask, run
+web/                     the app's page (React + Vite): War room, Track record, This week
 src/
   markets.py             per-market settings (paths, costs, rules); --market china|india
   india_download.py      download NSE bhavcopies and index closes (resumable, polite)
@@ -686,7 +712,8 @@ tests/                   test_dsl.py (factor language), test_llm.py (LLM client)
                          test_phase4.py (weekly judge, Critic, feedback loop with a fake LLM),
                          test_phase5.py (model, calibration, no peeking past 2020); synth_market.py,
                          test_phase6.py (exam, luck statistics, leakage test, ledger),
-                         test_phase7.py (agent team with a fake LLM, compliance, approvals)
+                         test_phase7.py (agent team with a fake LLM, compliance, approvals),
+                         test_phase8.py (app backend: privacy, local-only, approvals, run button)
 config/india_overrides.csv  manual decisions for corporate actions (real crashes, missed bonuses)
 config/phase6_frozen.json   the frozen exam settings and pass marks (committed before the exam)
 config/llm_cutoffs.csv      each LLM's knowledge cutoff, for the leakage test
@@ -707,6 +734,7 @@ python tests/test_phase4.py
 python tests/test_phase5.py
 python tests/test_phase6.py
 python tests/test_phase7.py
+python tests/test_phase8.py
 ```
 
 They need no data and no API keys, and run automatically on GitHub for every push
