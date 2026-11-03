@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { api, usePoll, ago, clock } from "./api.js";
+
+const Office = lazy(() => import("./office/Office.jsx"));
+const VIEW_KEY = "lad-room-view";
+const savedView = () => { try { return localStorage.getItem(VIEW_KEY) || "3d"; } catch (e) { return "3d"; } };
 
 const DESKS = ["Head office", "Market data", "Model room", "Risk & compliance", "Communications", "Research lab"];
 const STATUS_LABEL = { ok: "ok", warning: "warning", stop: "stopped", idle: "idle" };
@@ -142,13 +146,29 @@ function Feed() {
 }
 
 export default function WarRoom({ overview, reload }) {
+  const [view, setView] = useState(savedView);
+  const pick = v => { setView(v); try { localStorage.setItem(VIEW_KEY, v); } catch (e) { /* private window */ } };
   return (
     <>
       <Strip o={overview} reload={reload} />
-      <div className="room">
-        <Floor agents={overview?.agents || []} running={overview?.running} />
-        <div className="side"><Approvals reload={reload} /><Ask /></div>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h2>The office</h2>
+        <div className="view-switch" role="group" aria-label="View">
+          <button aria-pressed={view === "3d"} onClick={() => pick("3d")}>3D office</button>
+          <button aria-pressed={view === "list"} onClick={() => pick("list")}>Desks list</button>
+        </div>
       </div>
+      {view === "3d" ? (
+        <>
+          <Suspense fallback={<p className="muted">Opening the office…</p>}><Office overview={overview} /></Suspense>
+          <div className="two"><Approvals reload={reload} /><Ask /></div>
+        </>
+      ) : (
+        <div className="room">
+          <Floor agents={overview?.agents || []} running={overview?.running} />
+          <div className="side"><Approvals reload={reload} /><Ask /></div>
+        </div>
+      )}
       <Feed />
     </>
   );

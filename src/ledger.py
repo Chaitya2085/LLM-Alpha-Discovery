@@ -202,7 +202,7 @@ def record(cfg, threads: int = 2, p=None, log=print) -> list[dict]:
         book.insert(0, "as_of", as_of)
         body = book.to_csv(index=False, float_format="%.5f").encode()
         rows.append(commit_file(p, as_of, variant, body, frozen["fingerprint"]))
-        reasons(model, x_today, book.loc[book["in_book"], "code"]).to_csv(
+        reasons(model, x_today, book["code"]).to_csv(          # every ranked stock, for the app's stock page
             p["private"] / f"{as_of}_{tag}_why.csv", index=False, float_format="%.5f")
         log(f"  {variant}: {int(book['in_book'].sum())} stocks recorded for the week after {as_of} "
             f"(fingerprint {rows[-1]['sha256'][:12]})")
@@ -210,7 +210,7 @@ def record(cfg, threads: int = 2, p=None, log=print) -> list[dict]:
 
 
 def rebuild_reasons(cfg, as_of: str, threads: int = 2, p=None, log=print) -> list[str]:
-    """Write the missing <as_of>_<tag>_why.csv for books recorded before reasons were saved.
+    """Write (or complete) <as_of>_<tag>_why.csv for books recorded before reasons were saved for every stock.
     Retrains the same frozen model on the same data (fixed seed), so the reasons match the book.
     Never touches the ledger itself. Only possible while the latest data day is still `as_of`."""
     p = p or paths()
@@ -226,12 +226,14 @@ def rebuild_reasons(cfg, as_of: str, threads: int = 2, p=None, log=print) -> lis
     for variant in frozen["variants"]:
         tag = "llm" if "LLM" in variant else "a158"
         book_f, why_f = p["private"] / f"{as_of}_{tag}.csv", p["private"] / f"{as_of}_{tag}_why.csv"
-        if not book_f.exists() or why_f.exists():
+        if not book_f.exists():
             continue
+        book = pd.read_csv(book_f)
+        if why_f.exists() and set(pd.read_csv(why_f)["code"]) >= set(book["code"]):
+            continue                                            # already has reasons for every stock
         X = X_all if "LLM" in variant else a158
         _, model, x_today = predict_latest(m, X, y, y_rank, label_end, threads, return_model=True)
-        book = pd.read_csv(book_f)
-        reasons(model, x_today, book.loc[book["in_book"], "code"]).to_csv(why_f, index=False, float_format="%.5f")
+        reasons(model, x_today, book["code"]).to_csv(why_f, index=False, float_format="%.5f")
         done.append(why_f.name)
         log(f"  {variant}: reasons saved for the book of {as_of}")
     return done

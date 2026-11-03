@@ -19,7 +19,7 @@ benchmark; India is the product market.
 | 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Done** |
 | 6 | Final exam on held-out years, leakage test, prediction ledger | **Done** |
 | 7 | AI agent team: the "trading floor" | **Done** |
-| 8 | Web app: war room, research lab, track record | **8a built (local)** |
+| 8 | Web app: war room, research lab, track record | **Local app done** |
 | 9 | Compliance review, deploy, demo video, final report | |
 
 ---
@@ -162,8 +162,9 @@ research round after approval.
 ## Phase 8: Web app
 
 **8a (built):** a local app (`python run_app.py`): war room, track record and this week's
-explanations, on FastAPI + React/Vite, listening on your computer only. **Next:** the research lab
-(test an idea in plain English), then the public Learn-mode version after the Phase 9 review.
+explanations, on FastAPI + React/Vite, listening on your computer only. Also built: a 3D office, a page for every
+stock, the research lab (test an idea in plain English) and the strategy library. **Next:** the public
+Learn-mode version after the Phase 9 review.
 
 Inspired by "AI office" dashboards: an **isometric trading floor** where you watch the
 agents work.

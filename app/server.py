@@ -63,6 +63,16 @@ class RunRequest(BaseModel):
     weekly: bool = False
 
 
+class LabRequest(BaseModel):
+    idea: str = ""
+    expression: str = ""
+
+
+class LabSave(BaseModel):
+    job: str
+    index: int
+
+
 def clean(x):
     """JSON-safe: NaN/inf -> None."""
     if isinstance(x, float) and (math.isnan(x) or math.isinf(x)):
@@ -201,19 +211,11 @@ def create_app(cfg=None, ledger_paths=None, team_runner=None) -> FastAPI:
         Journal(folder).add("You", f"{c['status']} card {c['id']} in the app: {c['question']}")
         return c
 
-    llm_holder = {"llm": None, "tried": False}
-
     @app.post("/api/ask")
     def ask(q: Question):
         if not q.question.strip():
             raise HTTPException(400, "ask a question")
-        if not llm_holder["tried"]:
-            llm_holder["tried"] = True
-            try:
-                llm_holder["llm"] = chief.make_llm()
-            except Exception:  # noqa: BLE001 - no LLM: the answer comes from the log
-                llm_holder["llm"] = None
-        ctx = chief.new_context(cfg, llm=llm_holder["llm"], folder=folder, ledger_paths=lp)
+        ctx = chief.new_context(cfg, llm=get_llm(), folder=folder, ledger_paths=lp)
         return {"answer": chief.ask(ctx, q.question.strip()[:500], private=q.private)}
 
     lock = threading.Lock()
@@ -232,6 +234,218 @@ def create_app(cfg=None, ledger_paths=None, team_runner=None) -> FastAPI:
         p = run_state["proc"]
         return {"running": running(), "started": run_state["started"],
                 "exit_code": None if p is None or p.poll() is None else p.returncode}
+
+    # ------------------------------------------------------------ stocks (personal mode: names stocks)
+    market_cache = {}
+
+    def market():
+        if "m" not in market_cache:
+            from data import load_market
+            market_cache["m"] = load_market(cfg.name)
+        return market_cache["m"]
+
+    def latest_rank(tag: str):
+        files = sorted(lp["private"].glob(f"*_{tag}.csv")) if lp["private"].exists() else []
+        return (pd.read_csv(files[-1]), files[-1]) if files else (None, None)
+
+    def risk_info():
+        import risk_lists
+        try:
+            _, surv = risk_lists.latest_reg_ind()
+        except Exception:  # noqa: BLE001 - a malformed file just means no flags
+            surv = {}
+        return surv, risk_lists.sectors()
+
+    @app.get("/api/stocks")
+    def stocks():
+        a158, _ = latest_rank("a158")
+        if a158 is None:
+            return {"as_of": None, "stocks": []}
+        llm, _ = latest_rank("llm")
+        llm_in = set(llm.loc[llm["in_book"], "code"]) if llm is not None else set()
+        surv, sect = risk_info()
+        rows = []
+        for i, r in enumerate(a158.itertuples(), 1):
+            code = str(r.code)
+            rows.append({"rank": i, "code": code, "p": float(r.p), "in_book": bool(r.in_book),
+                         "in_book_llm": code in llm_in, "sector": sect.get(code.upper()),
+                         "flags": surv.get(code.upper(), [])})
+        return clean({"as_of": str(a158["as_of"].iloc[0]), "count": len(rows), "stocks": rows})
+
+    @app.get("/api/stocks/{code}")
+    def stock(code: str):
+        from generate_factors import load_library
+        from team import explain
+        a158, f = latest_rank("a158")
+        if a158 is None:
+            raise HTTPException(404, "no weekly ranking yet: run the team's weekly jobs first")
+        codes = a158["code"].astype(str).tolist()
+        if code not in codes:
+            raise HTTPException(404, f"{code} is not in this week's top-200 universe")
+        i = codes.index(code)
+        row = a158.iloc[i]
+        as_of = str(row["as_of"])
+        out = {"code": code, "as_of": as_of, "rank": i + 1, "of": len(codes), "p": float(row["p"]),
+               "in_book": bool(row["in_book"])}
+        llm, _ = latest_rank("llm")
+        if llm is not None and code in set(llm["code"].astype(str)):
+            lr = llm.reset_index(drop=True)
+            j = lr.index[lr["code"].astype(str) == code][0]
+            out["llm"] = {"rank": int(j) + 1, "p": float(lr.loc[j, "p"]), "in_book": bool(lr.loc[j, "in_book"])}
+        surv, sect = risk_info()
+        out["sector"], out["flags"] = sect.get(code.upper()), list(surv.get(code.upper(), []))
+        why_f = lp["private"] / f"{as_of}_a158_why.csv"
+        out["reasons"] = []
+        if why_f.exists():
+            why = pd.read_csv(why_f)
+            lib = {r["id"]: r for r in load_library()}
+            for w in why[why["code"].astype(str) == code].itertuples():
+                out["reasons"].append({"feature": w.feature, "contribution": float(w.contribution),
+                                       "fact": explain.fact(w.feature, w.rank_pct, w.contribution, lib)})
+        notes = notes_file()
+        out["note"] = notes.get(f"{as_of}:{code}")
+        # price history: one year, indexed to 100, against the Nifty 200
+        m = market()
+        if code in m.close.columns:
+            c = m.close[code].dropna().iloc[-252:]
+            idx = m.index_close.reindex(c.index).ffill()
+            out["prices"] = {"dates": [d.strftime("%Y-%m-%d") for d in c.index],
+                             "stock": (c / c.iloc[0] * 100).round(2).tolist(),
+                             "index": (idx / idx.iloc[0] * 100).round(2).tolist()}
+            last = m.close[code].dropna()
+            out["returns"] = {k: float(last.iloc[-1] / last.iloc[-1 - n] - 1) if len(last) > n else None
+                              for k, n in (("week", 5), ("month", 21), ("quarter", 63), ("year", 252))}
+        # past weeks in the ledger
+        hist = []
+        for bf in sorted(lp["private"].glob("*_a158.csv")) if lp["private"].exists() else []:
+            b = pd.read_csv(bf)
+            cs = b["code"].astype(str).tolist()
+            if code in cs:
+                hist.append({"as_of": str(b["as_of"].iloc[0]), "rank": cs.index(code) + 1,
+                             "p": float(b["p"].iloc[cs.index(code)]), "in_book": bool(b["in_book"].iloc[cs.index(code)])})
+        out["history"] = hist[::-1]
+        return clean(out)
+
+    def notes_file() -> dict:
+        nf = folder / "private" / "stock_notes.json"
+        return json.loads(nf.read_text()) if nf.exists() else {}
+
+    @app.post("/api/stocks/{code}/explain")
+    def stock_explain(code: str):
+        from team.agents import EXPLAIN_SYSTEM
+        from llm import extract_json
+        s = stock(code)
+        if not s["reasons"]:
+            raise HTTPException(400, "no reasons saved for this stock yet")
+        facts = [r["fact"] for r in s["reasons"] if not r["feature"].startswith("mkt_")][:4]
+        llm = get_llm()
+        if llm is None:
+            raise HTTPException(400, "no LLM key found; the facts above are the explanation")
+        try:
+            obj = extract_json(llm(EXPLAIN_SYSTEM.replace("ranked one stock highly", "ranked one stock where it did"),
+                                   json.dumps({"stock": code, "rank": f"{s['rank']} of {s['of']}", "facts": facts,
+                                               "risk_flags": s["flags"]})) or "", "summary")
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(502, f"the LLM didn't answer: {str(e)[:120]}")
+        note = {"summary": str(obj.get("summary", "")).strip(), "watch": str(obj.get("watch", "")).strip()}
+        if not note["summary"] or compliance.check(note["summary"] + " " + note["watch"]):
+            raise HTTPException(422, "the LLM's wording failed the compliance check; the facts above still stand")
+        notes = notes_file()
+        notes[f"{s['as_of']}:{code}"] = note
+        (folder / "private").mkdir(exist_ok=True)
+        (folder / "private" / "stock_notes.json").write_text(json.dumps(notes, indent=1))
+        EventLog(folder, "app").write("Explainer", "explain", f"Explained {code} in plain words", private=True)
+        return note
+
+    # ------------------------------------------------------------ research lab
+    import research_lab
+    lab_jobs = research_lab.Jobs(cfg, lambda: get_llm(),
+                                 log=lambda agent, action, msg, status: EventLog(folder, "lab").write(agent, action, msg, status))
+
+    @app.post("/api/lab")
+    def lab_start(r: LabRequest):
+        idea, expr = r.idea.strip(), r.expression.strip()
+        if not idea and not expr:
+            raise HTTPException(400, "describe an idea or write a formula")
+        try:
+            job = lab_jobs.start(idea=idea or None, expression=expr or None)
+        except RuntimeError as e:
+            raise HTTPException(409, str(e))
+        return {"id": job["id"]}
+
+    @app.get("/api/lab/{job_id}")
+    def lab_job(job_id: str):
+        j = lab_jobs.get(job_id)
+        if not j:
+            raise HTTPException(404, "no such lab run (the app may have restarted)")
+        return clean({k: v for k, v in j.items() if k != "started"})
+
+    @app.post("/api/lab-save")
+    def lab_save(r: LabSave):
+        j = lab_jobs.get(r.job)
+        if not j or j["status"] != "done" or not (0 <= r.index < len(j["results"])):
+            raise HTTPException(404, "nothing to save")
+        rec = j["results"][r.index]
+        if rec.get("status") != "valid":
+            raise HTTPException(400, "only a valid, new formula can be saved")
+        try:
+            new = research_lab.save_to_library(rec)
+        except ValueError as e:
+            raise HTTPException(409, str(e))
+        rec["saved_as"] = new["id"]
+        Journal(folder).add("You", f"saved {new['id']} \"{new.get('name')}\" from the research lab ({rec.get('verdict')})")
+        return {"id": new["id"]}
+
+    @app.get("/api/grammar")
+    def grammar():
+        from dsl import grammar_doc
+        return {"grammar": grammar_doc()}
+
+    # ------------------------------------------------------------ strategy library
+    @app.get("/api/strategies")
+    def strategies():
+        from generate_factors import load_library
+        lib = load_library()
+        p4, p2 = {}, {}
+        f4, f2 = cfg.results / "phase4_factors.csv", cfg.results / "phase2_factor_scores.csv"
+        if f4.exists():
+            for r in pd.read_csv(f4).to_dict("records"):
+                p4.setdefault(r["id"], r)
+        if f2.exists():
+            for r in pd.read_csv(f2).to_dict("records"):
+                p2[r["id"]] = r
+        rows = []
+        for r in lib:
+            w = p4.get(r["id"]) or {}
+            lab = r.get("lab") or {}
+            d = p2.get(r["id"]) or {}
+            who = "you" if r.get("provider") == "you" else (
+                "Claude (seed)" if r.get("provider") == "claude-in-chat" else f"{r.get('provider')}: {r.get('model')}")
+            if r.get("phase") == "lab":
+                who = f"lab · {r.get('provider')}"
+            rows.append({
+                "id": r["id"], "name": r.get("name"), "category": r.get("category"), "expression": r.get("expression")
+                or r.get("raw_expression"), "hypothesis": r.get("hypothesis"), "researcher": who,
+                "phase": r.get("phase", 2), "status": r.get("status"), "error": r.get("error"),
+                "verdict": w.get("verdict") or lab.get("verdict") or (r.get("status") if r.get("status") != "valid" else None),
+                "reason": w.get("reason") or lab.get("reason"),
+                "net_excess_ann": w.get("net_excess_ann", lab.get("net_excess_ann")),
+                "hit_rate": w.get("hit_rate", lab.get("hit_rate")),
+                "weekly_ic_t": w.get("weekly_ic_t", lab.get("weekly_ic_t")),
+                "daily_rank_ic": d.get("rank_ic"), "shortlist": bool(d.get("shortlist")) if d else False,
+                "created_at": r.get("created_at"), "idea": r.get("idea"),
+            })
+        return clean({"count": len(rows), "strategies": rows})
+
+    llm_cache = {}
+
+    def get_llm():
+        if "llm" not in llm_cache:
+            try:
+                llm_cache["llm"] = chief.make_llm()
+            except Exception:  # noqa: BLE001
+                llm_cache["llm"] = None
+        return llm_cache["llm"]
 
     # ------------------------------------------------------------ the page
     if DIST.exists():

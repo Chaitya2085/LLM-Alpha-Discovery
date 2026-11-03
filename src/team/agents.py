@@ -291,8 +291,9 @@ class Explainer(Agent):
         if book is None:
             self.say(ctx, "skip", "No book to explain yet", WARN)
             return Result(WARN, "nothing to explain")
-        if not why_f.exists():                # recorded before reasons were saved (update 17 or earlier)
-            self.say(ctx, "rebuild", f"Rebuilding the reasons for the book of {as_of} (a few minutes)")
+        complete = why_f.exists() and set(pd.read_csv(why_f)["code"]) >= set(book["code"])
+        if not complete:                      # recorded before reasons were saved for every stock
+            self.say(ctx, "rebuild", f"Rebuilding the reasons for every stock ranked on {as_of} (a few minutes)")
             ledger.rebuild_reasons(ctx.cfg, as_of, p=p, log=lambda *a: None)
             if not why_f.exists():
                 self.say(ctx, "skip", f"Can't rebuild the reasons for {as_of}: newer data has arrived since. "

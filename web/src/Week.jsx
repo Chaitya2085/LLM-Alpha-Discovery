@@ -1,6 +1,6 @@
 import { usePoll } from "./api.js";
 
-export default function Week() {
+export default function Week({ go }) {
   const [w, error] = usePoll("week");
   if (error) return null;
   if (!w) return <p className="muted">Loading…</p>;
@@ -20,7 +20,7 @@ export default function Week() {
         {w.stocks.map(s => (
           <article className="pick" key={s.code}>
             <div>
-              <div className="code">{s.code}</div>
+              <button className="code linkish" onClick={() => go(`stocks/${encodeURIComponent(s.code)}`)} title="Open the stock page">{s.code} →</button>
               <div className="num small">{Math.round(s.confidence * 100)}% chance</div>
               <div className="meter" aria-hidden="true"><i style={{ width: `${s.confidence * 100}%` }} /><b /></div>
             </div>

@@ -11,6 +11,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 sys.path.insert(0, str(HERE.parent / "src"))
+sys.path.insert(0, str(HERE))
 from fastapi.testclient import TestClient  # noqa: E402
 
 import ledger  # noqa: E402
@@ -104,6 +105,66 @@ def test_week_reads_explanations():
          "stocks": {"XYZ": {"confidence": 0.55, "facts": ["f"], "summary": "s", "watch": "w", "risk": []}}}))
     w = c.get("/api/week").json()
     assert w["as_of"] == "2026-11-02" and w["stocks"][0]["code"] == "XYZ"
+
+
+def _market_app():
+    """An app on a small synthetic market with one recorded week and a factor library."""
+    import time as _t
+    import pandas as pd
+    import generate_factors
+    from synth_market import make_market
+    root = TMP / "mk"
+    cfg = make_market(root, name="app8m", n=40, seed=2, start="2013-06-01", end="2021-03-31")
+    generate_factors.LIB = root / "library.jsonl"
+    generate_factors.append_library(generate_factors.ingest(json.dumps({"factors": [
+        {"name": "busy", "category": "volume", "expression": "Mean(volume, 20)", "hypothesis": "h"}]}),
+        {"provider": "fake", "model": "m", "prompt_version": "t", "run_file": "t", "created_at": "t"}, []))
+    lp = ledger.paths(root / "ledger")
+    lp["private"].mkdir(parents=True, exist_ok=True)
+    codes = [f"S{i:03d}" for i in range(40)]
+    pd.DataFrame({"as_of": "2021-03-31", "code": codes, "p": [0.55 - i * 0.002 for i in range(40)],
+                  "rank_pct": [1 - i / 40 for i in range(40)], "in_book": [i < 10 for i in range(40)]}).to_csv(
+        lp["private"] / "2021-03-31_a158.csv", index=False)
+    pd.DataFrame({"code": ["S005", "S005"], "feature": ["a158_ROC5", "a158_STD20"], "rank_pct": [0.9, 0.2],
+                  "contribution": [0.1, -0.05]}).to_csv(lp["private"] / "2021-03-31_a158_why.csv", index=False)
+    import team.chief as chief
+    chief.make_llm = lambda *a, **k: (lambda system, user: json.dumps({"factors": [
+        {"name": "fell_quietly", "category": "reversal", "expression": "-Pct(close, 20) * Mean(volume, 60) / Mean(volume, 20)",
+         "hypothesis": "quiet falls recover"}]}))
+    c = TestClient(create_app(cfg, ledger_paths=lp, team_runner=lambda a: FakeProc()), base_url="http://127.0.0.1")
+    return c, _t
+
+
+def test_stock_list_and_page():
+    c, _ = _market_app()
+    s = c.get("/api/stocks").json()
+    assert s["count"] == 40 and s["stocks"][0]["code"] == "S000" and s["stocks"][0]["in_book"]
+    p = c.get("/api/stocks/S005").json()
+    assert p["rank"] == 6 and p["in_book"] and len(p["prices"]["stock"]) > 200
+    assert [r["contribution"] > 0 for r in p["reasons"]] == [True, False] and "ranks above 90%" in p["reasons"][0]["fact"]
+    assert c.get("/api/stocks/NOPE").status_code == 404
+
+
+def test_lab_formula_and_idea_then_save():
+    c, t = _market_app()
+    def wait(jid):
+        for _ in range(240):
+            j = c.get(f"/api/lab/{jid}").json()
+            if j["status"] in ("done", "failed"):
+                return j
+            t.sleep(0.5)
+        raise AssertionError("lab run did not finish")
+    j = wait(c.post("/api/lab", json={"expression": "Mean(volume, 20)"}).json()["id"])
+    assert j["status"] == "done", j
+    assert j["results"][0]["status"] == "duplicate" and "already in the library" in j["results"][0]["reason"]
+    j = wait(c.post("/api/lab", json={"idea": "stocks that fell quietly"}).json()["id"])
+    assert j["status"] == "done", j
+    r = j["results"][0]
+    assert r["status"] == "valid" and r["verdict"] and r["curve"]["dates"][-1] <= "2020-12-31"   # never the exam years
+    saved = c.post("/api/lab-save", json={"job": j["id"], "index": 0}).json()["id"]
+    assert c.post("/api/lab-save", json={"job": j["id"], "index": 0}).status_code == 409
+    lib = {x["id"]: x for x in c.get("/api/strategies").json()["strategies"]}
+    assert lib[saved]["verdict"] == r["verdict"] and lib[saved]["idea"] == "stocks that fell quietly"
 
 
 if __name__ == "__main__":

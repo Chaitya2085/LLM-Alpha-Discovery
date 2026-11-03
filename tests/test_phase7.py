@@ -137,6 +137,8 @@ def test_weekly_run_good_llm_end_to_end():
     why_f.unlink()
     assert agents.Explainer().run(_ctx(root, cfg)).status == OK
     assert pd.read_csv(why_f).equals(original)
+    ranked = pd.read_csv(sorted(p["private"].glob("*_llm.csv"))[-1])["code"]
+    assert set(original["code"]) == set(ranked)              # reasons for every ranked stock, not just the book
     assert any("10 written by the LLM" in e["message"] for e in ctx.log.read())
     # reports: personal stays private, learn is shareable and names no current stock
     assert list((root / "team" / "private").glob("personal_*.md"))

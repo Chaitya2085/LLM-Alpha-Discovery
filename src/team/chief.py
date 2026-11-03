@@ -35,11 +35,13 @@ def make_llm(order: list[str] = LLM_ORDER):
     if not clients:
         return None
 
-    def call(system: str, user: str) -> str:
+    def call(system: str, user: str, max_tokens: int = 600) -> str:
         last = None
         for c in list(clients):
             try:
-                return c.complete(system, user, max_tokens=600).text
+                text = c.complete(system, user, max_tokens=max_tokens).text
+                call.used = c.provider
+                return text
             except Exception as e:  # noqa: BLE001 - try the next provider
                 last = e
                 clients.remove(c)         # don't keep hitting a provider that failed this run

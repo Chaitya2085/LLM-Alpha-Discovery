@@ -34,7 +34,7 @@ EMNLP 2025, [arXiv:2409.06289](https://arxiv.org/abs/2409.06289)), which reports
 | 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Done** |
 | 6 | Final exam on held-out years, leakage test, prediction ledger | **Done** |
 | 7 | AI agent team: the "trading floor" (activity log, approvals, explanations, compliance) | **Done** |
-| 8 | Web app: war room, track record, this week (local version built); research lab and public version next | **In progress** |
+| 8 | Web app: war room (3D office), this week, stocks, research lab, strategies, track record (local version built); public version in Phase 9 | **Local app done** |
 | 9 | Compliance review, deploy, demo video, final report | |
 
 The full plan, with accuracy targets, SEBI rules and what each phase delivers, is in
@@ -601,7 +601,7 @@ fails is replaced by template text; the Compliance Officer blocks a bad report.
 
 ## Phase 8: the app (local version)
 
-![The war room](figures/app_war_room.png)
+![The 3D office](figures/app_office_3d.png)
 
 `python run_app.py` opens the project as a web app on your own computer (http://127.0.0.1:8000).
 The first time it builds the page, which needs Node.js. It only answers requests from your computer,
@@ -609,18 +609,21 @@ because Personal mode shows stock names.
 
 | Page | What it shows |
 |---|---|
-| **War room** | Every agent at its desk with its latest action and status; buttons to run the team; approval cards you answer with one click; "Ask the Chief Strategist"; the activity feed (stock names hidden unless you tick the box) |
+| **War room** | A 3D office (drag to turn, zoom, click a room or a person): one room per team, each agent at its desk with a status light, wall screens with live numbers, and agents who walk to the meeting room and say what they did when the team runs. A desks list view does the same in plain cards. Also: buttons to run the team; approval cards you answer with one click; "Ask the Chief Strategist"; the activity feed (stock names hidden unless you tick the box) |
 | **Track record** | The final exam: growth of ₹1 lakh against the Nifty 200 and against holding all 200 stocks equally, the verdict, and the live ledger (sealed weeks and, after 31 days, their results) |
 | **This week** | The top 10 stocks with the model's chance of beating the index, plain-English reasons, what would change the view, and risk flags |
+| **Stocks** | All 200 stocks the model ranked this week (search, sort by rank or sector). Each stock's page: its rank and chance in both model versions, the inputs that raised or lowered its score, a one-click plain-English note from the Explainer, risk flags, a year of price against the Nifty 200, and its past weeks in the ledger |
+| **Research lab** | Type an idea in plain words (or write the formula). A Researcher (Gemini, then Groq) turns it into formulas, the weekly judge tests each one on 2014 to 2020 only (top fifth, held a week, after Indian costs, against holding all stocks equally), and the Critic gives a verdict, with a growth chart. A backwards idea can be flipped and retested in one click; a good one can be saved to the library |
+| **Strategies** | Every idea in the factor library (~700): who wrote it, the formula, the hypothesis, the Critic's verdict and the after-cost result; filter by verdict or researcher; send any idea to the lab for a weekly test |
 
 The backend (`app/server.py`, FastAPI) only reads what the team, the exam and the ledger wrote; its
-three actions are answering an approval card, asking a question, and starting `run_team.py`. The page
-(`web/`, React + Vite) is built into `web/dist/`, which is not committed. A public version (Learn
+actions are answering an approval card, asking a question, starting `run_team.py`, asking the Explainer about a stock, and running and saving lab tests (`src/research_lab.py`; never on the exam years). The page
+(`web/`, React + Vite, the office in three.js) is built into `web/dist/`, which is not committed. A public version (Learn
 mode and track record only) comes after the compliance review in Phase 9.
 
-**Checks:** 6 Phase 8 tests: the overview and feed read the team's files, stock names only appear when
+**Checks:** 8 Phase 8 tests: the overview and feed read the team's files, stock names only appear when
 asked for, requests from other addresses are refused, approval cards can be answered once, the run
-button starts one team at a time, and the Ask box and pages work before any results exist.
+button starts one team at a time, the Ask box and pages work before any results exist, the stock list and stock page read the weekly ranking and reasons, and the lab tests a formula and an idea (2014 to 2020 only), spots a duplicate, and saves to the library once.
 
 ## Design choices that keep results honest
 
@@ -694,6 +697,7 @@ src/
   honest_stats.py        probabilistic and deflated Sharpe ratios (luck counted)
   leakage_test.py        do LLM factors fade right after the model's knowledge cutoff?
   ledger.py              weekly predictions: fingerprint now, reveal after 31 days, score, verify
+  research_lab.py        the app's lab: idea -> formulas -> weekly judge (2014-2020) -> Critic; save to library
   risk_lists.py          NSE surveillance flags (REG_IND) and Nifty 200 sectors for the Risk Officer
   team/core.py           activity log, approval cards, journal, shared context
   team/agents.py         the agents (data, regime, model, risk, compliance, explainer, reporter, research)
