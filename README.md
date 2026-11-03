@@ -23,7 +23,7 @@ EMNLP 2025, [arXiv:2409.06289](https://arxiv.org/abs/2409.06289)), which reports
 - **Built for India** (Phase 3 on): NSE stocks, Indian trading costs and rules, and a
   product designed around SEBI's rules for research and investor education
 - **An AI agent team and a web app** (Phases 7–8): agents run the research on a live
-  "trading floor", with rankings, confidence scores and plain-English/Hindi reasons
+  "trading floor", with rankings, confidence scores and plain-English reasons
 
 | Phase | What | Status |
 |---|---|---|
@@ -32,8 +32,8 @@ EMNLP 2025, [arXiv:2409.06289](https://arxiv.org/abs/2409.06289)), which reports
 | 3 | Indian market data: NSE pipeline, Nifty baselines, Indian costs and rules | **Done** |
 | 4 | Feedback loop: Researcher and Critic agents, judged weekly after costs | **Done** |
 | 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Done** |
-| 6 | Final exam on held-out years, leakage test, prediction ledger | **Built, run on your Mac** |
-| 7 | AI agent team: the "trading floor" | |
+| 6 | Final exam on held-out years, leakage test, prediction ledger | **Done** |
+| 7 | AI agent team: the "trading floor" (activity log, approvals, explanations, compliance) | **Built** |
 | 8 | Web app: war room, research lab, track record (English and Hindi) | |
 | 9 | Compliance review, deploy, demo video, final report | |
 
@@ -559,6 +559,46 @@ exam is frozen, finds a planted edge and refuses an unrecorded second run; the l
 effect that stops exactly at a model's cutoff and not one that doesn't; an edited or back-dated
 ledger entry is caught; the ledger records once per day.
 
+## Phase 7: the AI research team
+
+The tested code from Phases 1–6 now runs as a small team. Each agent has one job, writes what it did
+to an activity log, and stops the line if something is wrong. **Numbers always come from code**; an
+LLM is only used to put given facts into plain words, and its words are checked before anyone sees them.
+
+```bash
+python run_team.py                    # after the close: download, check, and the weekly jobs if a week has passed
+python run_team.py --skip-download    # use the data already on this computer
+python run_team.py log                # what the team did      (--private to include stock names)
+python run_team.py approvals          # decisions waiting for you; then: approve <id> / reject <id>
+python run_team.py ask "why did the run stop?"
+```
+
+| Desk | Agent | What it does | LLM? |
+|---|---|---|---|
+| Head office | **Chief Strategist** | Runs the agents in order; stops the run on bad data or a broken ledger; answers your questions from the log | words only |
+| Market data | **Data Collector** | Downloads the latest NSE files and NSE's surveillance list | no |
+| | **Data Checker** | Stale data, missing prices, a shrunken universe, no index close, 25%+ one-day moves | no |
+| Model room | **Regime Watcher** | Labels the market mood (calm rising / calm falling / turbulent); notes changes in the journal | no |
+| | **Model Trainer** | Weekly: records the frozen model's predictions in the ledger, reveals and scores old ones, warns if the live record drifts | no |
+| Risk & compliance | **Risk Officer** | Flags stocks in the book under NSE surveillance (GSM, ASM, ESM, insolvency, high pledge), locked at a price limit, down 15%+ in a week, thinly traded; and sector crowding | no |
+| | **Compliance Officer** | Checks every report: no buy/sell or target-price words, no promises, the disclaimer, and in Learn mode data at least 30 days old with no current picks named. Blocks anything that fails | no (rules) |
+| Communications | **Explainer** | For the top 10 stocks, turns LightGBM's own per-input contributions into true sentences, then (optionally) lets Gemini or gpt-oss rephrase them; falls back to the plain sentences if the LLM fails or breaks a rule | words only |
+| | **Reporter** | Drafts a personal report (stays on your computer) and a Learn report (30-day-old data, safe to share) | no |
+| Research lab | **Research lead** | Once a month asks your approval to run a Phase 4 research round (Researchers + Critic), and runs it only after you approve | Researchers |
+
+Where it writes (`results/india/team/`): `events.jsonl` (public log, never names a current stock),
+`journal.md` (decisions and approvals), `approvals.json`, `reports/learn_*.md` (shareable), and
+`private/` (stock names, explanations, personal reports, blocked drafts), which is never committed.
+
+**LLM:** Gemini first, gpt-oss on Groq as backup, plain template text if neither answers
+(`--no-llm` forces templates). About 10 short calls a week, well inside the free tiers.
+
+**Checks:** 8 Phase 7 tests: compliance rules catch advice and promise wording; explanation facts
+read correctly; the NSE surveillance file is parsed; the Data Checker stops a run on stale or missing
+data; a full weekly run writes the ledger, explanations and both reports, keeps stock names out of the
+public log, and runs research only after approval; an LLM that writes "buy, target price" or that
+fails is replaced by template text; the Compliance Officer blocks a bad report.
+
 ## Design choices that keep results honest
 
 - **Point-in-time universe:** a stock is eligible only on days it was actually in the
@@ -599,6 +639,7 @@ run_phase4.py            tests -> feedback rounds per LLM -> tables -> chart -> 
 run_phase5.py            tests -> weekly model, walk-forward to 2020 -> charts -> README tables
 run_phase6.py            --freeze; then tests -> final exam -> leakage test -> chart -> README tables
 run_ledger.py            weekly: latest NSE data -> record -> reveal -> score -> verify -> README
+run_team.py              Phase 7: the agent team (run, log, approvals, approve/reject, ask)
 src/
   markets.py             per-market settings (paths, costs, rules); --market china|india
   india_download.py      download NSE bhavcopies and index closes (resumable, polite)
@@ -627,6 +668,12 @@ src/
   honest_stats.py        probabilistic and deflated Sharpe ratios (luck counted)
   leakage_test.py        do LLM factors fade right after the model's knowledge cutoff?
   ledger.py              weekly predictions: fingerprint now, reveal after 31 days, score, verify
+  risk_lists.py          NSE surveillance flags (REG_IND) and Nifty 200 sectors for the Risk Officer
+  team/core.py           activity log, approval cards, journal, shared context
+  team/agents.py         the agents (data, regime, model, risk, compliance, explainer, reporter, research)
+  team/chief.py          the Chief Strategist: run order, stop rules, LLM fallback, `ask`
+  team/compliance.py     the Compliance Officer's rules
+  team/explain.py        model inputs -> plain true sentences
   style.py               shared chart style
   plot_phase1.py         figures/phase1_growth.png
   plot_phase2.py         figures/phase2_strength_vs_novelty.png, figures/phase2_models.png
@@ -638,7 +685,8 @@ tests/                   test_dsl.py (factor language), test_llm.py (LLM client)
                          test_india.py + fake_nse.py (Indian pipeline on a synthetic NSE archive),
                          test_phase4.py (weekly judge, Critic, feedback loop with a fake LLM),
                          test_phase5.py (model, calibration, no peeking past 2020); synth_market.py,
-                         test_phase6.py (exam, luck statistics, leakage test, ledger)
+                         test_phase6.py (exam, luck statistics, leakage test, ledger),
+                         test_phase7.py (agent team with a fake LLM, compliance, approvals)
 config/india_overrides.csv  manual decisions for corporate actions (real crashes, missed bonuses)
 config/phase6_frozen.json   the frozen exam settings and pass marks (committed before the exam)
 config/llm_cutoffs.csv      each LLM's knowledge cutoff, for the leakage test
@@ -658,6 +706,7 @@ python tests/test_india.py
 python tests/test_phase4.py
 python tests/test_phase5.py
 python tests/test_phase6.py
+python tests/test_phase7.py
 ```
 
 They need no data and no API keys, and run automatically on GitHub for every push

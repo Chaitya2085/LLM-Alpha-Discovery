@@ -17,8 +17,8 @@ benchmark; India is the product market.
 | 3 | **Indian market data**: NSE pipeline, Nifty baselines, Indian costs and rules | **Done** |
 | 4 | Feedback loop: Researcher + Critic agents, judged weekly after costs | **Done** |
 | 5 | Prediction model: combined factors, calibrated confidence, market regimes | **Done** |
-| 6 | Final exam on held-out years, leakage test, prediction ledger | **Built, run on your Mac** |
-| 7 | AI agent team: the "trading floor" | |
+| 6 | Final exam on held-out years, leakage test, prediction ledger | **Done** |
+| 7 | AI agent team: the "trading floor" | **Built, run on your Mac** |
 | 8 | Web app: war room, research lab, track record (English and Hindi) | |
 | 9 | Compliance review, deploy, demo video, final report | |
 
@@ -135,7 +135,7 @@ lowered the result from +5.0%, which is why the data checks matter.
 - **Prediction ledger:** weekly predictions fingerprinted before the week (public), revealed after
   31 days (SEBI's 30-day rule), scored, and verifiable by anyone.
 
-## Phase 7: AI agent team, the "trading floor"
+## Phase 7: AI agent team, the "trading floor" (built)
 
 A team of agents, each with one job, working like a research firm. Every action is
 logged, so it can be replayed and shown live in the app.
@@ -151,8 +151,13 @@ logged, so it can be replayed and shown live in the app.
 | | **Regime Watcher** | Labels the market mood; flags regime changes |
 | Risk & compliance | **Risk Officer** | Flags crowded, unstable or costly signals |
 | | **Compliance Officer** | Enforces SEBI rules: data age, disclaimers, wording |
-| Communications | **Explainer** | Plain-English and Hindi reasons for every ranking |
-| | **Reporter** | Evening digest after market close |
+| Communications | **Explainer** | Plain-English reasons for the top-ranked stocks (Hindi later) |
+| | **Reporter** | Weekly personal report and a shareable Learn report |
+
+As built: agents wrap the tested code (LLMs only write words, every number comes from code); one
+activity log (public and private parts), approval cards for anything that spends API calls, a research
+journal; run by hand each week with `python run_team.py`. Researchers and Critic run as the monthly
+research round after approval.
 
 ## Phase 8: Web app
 

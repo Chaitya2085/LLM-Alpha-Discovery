@@ -29,6 +29,7 @@ import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 import markets
@@ -123,8 +124,9 @@ def reveal(p, now: datetime | None = None) -> list[str]:
 # ---------------------------------------------------------------- predictions
 
 def predict_latest(m, X: pd.DataFrame, y: pd.Series, y_rank: pd.Series, label_end: pd.Series,
-                   threads: int = 2) -> pd.DataFrame:
-    """Train on everything known at the latest close; rank the latest day's stocks."""
+                   threads: int = 2, return_model: bool = False):
+    """Train on everything known at the latest close; rank the latest day's stocks.
+    With return_model, also returns the model and the latest day's inputs (for explanations)."""
     import lightgbm as lgb
     d = X.index.get_level_values("date")
     le = label_end.reindex(d).to_numpy()
@@ -144,7 +146,26 @@ def predict_latest(m, X: pd.DataFrame, y: pd.Series, y_rank: pd.Series, label_en
     raw = model.predict(X.values[today], num_iteration=model.best_iteration)
     pct = p5.week_pct(raw, d[today])
     out = pd.DataFrame({"code": X.index.get_level_values("code")[today], "p": cal(pct), "rank_pct": pct + 0.5})
-    return out.sort_values("p", ascending=False).reset_index(drop=True)
+    out = out.sort_values("p", ascending=False).reset_index(drop=True)
+    if return_model:
+        x_today = pd.DataFrame(X.values[today], columns=X.columns, index=X.index.get_level_values("code")[today])
+        return out, model, x_today
+    return out
+
+
+def reasons(model, x_today: pd.DataFrame, codes, top: int = 5) -> pd.DataFrame:
+    """The inputs that pushed each stock's score most (LightGBM's own per-input contributions)."""
+    xs = x_today.reindex(list(codes))
+    contrib = model.predict(xs.values, pred_contrib=True, num_iteration=model.best_iteration)[:, :-1]
+    rows = []
+    for i, code in enumerate(xs.index):
+        order = np.argsort(-np.abs(contrib[i]))[:top]
+        for j in order:
+            col = xs.columns[j]
+            v = float(xs.iat[i, j])
+            rows.append({"code": code, "feature": col, "rank_pct": v + 0.5 if not col.startswith("mkt_") else v,
+                         "contribution": float(contrib[i, j])})
+    return pd.DataFrame(rows)
 
 
 def choose_book(ranked: pd.DataFrame, held: set, stocks: int, keep_zone: int) -> pd.DataFrame:
@@ -173,7 +194,7 @@ def record(cfg, threads: int = 2, p=None, log=print) -> list[dict]:
     for variant in frozen["variants"]:
         X = X_all if "LLM" in variant else a158
         d = frozen["designs"][variant]
-        ranked = predict_latest(m, X, y, y_rank, label_end, threads)
+        ranked, model, x_today = predict_latest(m, X, y, y_rank, label_end, threads, return_model=True)
         tag = "llm" if "LLM" in variant else "a158"
         prev = sorted(p["private"].glob(f"*_{tag}.csv")) if p["private"].exists() else []
         held = set(pd.read_csv(prev[-1]).query("in_book")["code"]) if prev else set()
@@ -181,9 +202,39 @@ def record(cfg, threads: int = 2, p=None, log=print) -> list[dict]:
         book.insert(0, "as_of", as_of)
         body = book.to_csv(index=False, float_format="%.5f").encode()
         rows.append(commit_file(p, as_of, variant, body, frozen["fingerprint"]))
+        reasons(model, x_today, book.loc[book["in_book"], "code"]).to_csv(
+            p["private"] / f"{as_of}_{tag}_why.csv", index=False, float_format="%.5f")
         log(f"  {variant}: {int(book['in_book'].sum())} stocks recorded for the week after {as_of} "
             f"(fingerprint {rows[-1]['sha256'][:12]})")
     return rows
+
+
+def rebuild_reasons(cfg, as_of: str, threads: int = 2, p=None, log=print) -> list[str]:
+    """Write the missing <as_of>_<tag>_why.csv for books recorded before reasons were saved.
+    Retrains the same frozen model on the same data (fixed seed), so the reasons match the book.
+    Never touches the ledger itself. Only possible while the latest data day is still `as_of`."""
+    p = p or paths()
+    frozen = json.loads(FROZEN.read_text())
+    m = p5.load_cut(cfg, "2262-01-01")
+    if str(m.dates[-1].date()) != as_of:
+        log(f"  can't rebuild reasons for {as_of}: the data now runs to {m.dates[-1].date()}")
+        return []
+    fwd5, bench5, y, y_rank, yex_long, label_end = p5.targets(m)
+    X_all = p5.build_features(m, cfg, frozen["llm_factors"], use_a158=True)
+    a158 = X_all[[c for c in X_all.columns if not c.startswith("llm_")]]
+    done = []
+    for variant in frozen["variants"]:
+        tag = "llm" if "LLM" in variant else "a158"
+        book_f, why_f = p["private"] / f"{as_of}_{tag}.csv", p["private"] / f"{as_of}_{tag}_why.csv"
+        if not book_f.exists() or why_f.exists():
+            continue
+        X = X_all if "LLM" in variant else a158
+        _, model, x_today = predict_latest(m, X, y, y_rank, label_end, threads, return_model=True)
+        book = pd.read_csv(book_f)
+        reasons(model, x_today, book.loc[book["in_book"], "code"]).to_csv(why_f, index=False, float_format="%.5f")
+        done.append(why_f.name)
+        log(f"  {variant}: reasons saved for the book of {as_of}")
+    return done
 
 
 def score(cfg, p=None) -> pd.DataFrame:
@@ -212,7 +263,7 @@ def score(cfg, p=None) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("action", choices=["record", "reveal", "score", "verify"])
+    ap.add_argument("action", choices=["record", "reveal", "score", "verify", "why"])
     ap.add_argument("--market", default=os.environ.get("LLM_ALPHA_MARKET", "india"))
     ap.add_argument("--threads", type=int, default=2)
     a = ap.parse_args()
@@ -223,6 +274,11 @@ def main() -> None:
         if not FROZEN.exists():
             raise SystemExit("Freeze Phase 6 first:  python phase6_exam.py --freeze")
         record(cfg, a.threads, p)
+    elif a.action == "why":
+        commits = read_commits(p)
+        if not commits:
+            raise SystemExit("nothing recorded yet")
+        rebuild_reasons(cfg, commits[-1]["as_of"], a.threads, p)
     elif a.action == "reveal":
         done = reveal(p)
         print(f"  revealed {len(done)} entr{'y' if len(done) == 1 else 'ies'}" + (": " + ", ".join(done) if done else ""))
