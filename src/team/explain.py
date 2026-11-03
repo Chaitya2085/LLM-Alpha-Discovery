@@ -83,10 +83,10 @@ def fact(feature: str, rank_pct: float, contribution: float, factors: dict | Non
     if kind == "market":
         return f"Market backdrop ({meaning}) {push} the model's view of this stock."
     if rank_pct >= 0.5:
-        where = f"among the top {max(1, round((1 - rank_pct) * 100))}% of the 200 stocks"
-        return f"This stock {meaning}: it is {where}, which {push} its score."
-    where = f"among the bottom {max(1, round(rank_pct * 100))}% of the 200 stocks"
-    return f"On \"{meaning}\" this stock is {where}, which {push} its score."
+        where = f"ranks above {min(99, round(rank_pct * 100))}% of the 200 stocks"
+    else:
+        where = f"ranks below {min(99, round((1 - rank_pct) * 100))}% of the 200 stocks"
+    return f"On \"{meaning}\", this stock {where}. That {push} its score."
 
 
 def template_note(facts: list[str]) -> dict:

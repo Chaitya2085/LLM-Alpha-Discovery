@@ -83,8 +83,8 @@ def test_compliance_rules():
 
 def test_explainer_facts_are_plain_and_true():
     assert "fell more than most" in explain.fact("a158_ROC5", 0.95, 0.1)
-    assert "top 5%" in explain.fact("a158_ROC5", 0.95, 0.1) and "raised" in explain.fact("a158_ROC5", 0.95, 0.1)
-    assert "bottom 10%" in explain.fact("a158_STD20", 0.10, -0.1)
+    assert "ranks above 95%" in explain.fact("a158_ROC5", 0.95, 0.1) and "raised" in explain.fact("a158_ROC5", 0.95, 0.1)
+    assert "ranks below 90%" in explain.fact("a158_STD20", 0.10, -0.1)
     assert "Market backdrop" in explain.fact("mkt_vol20", 0.2, 0.05)
     f = explain.fact("llm_abc", 0.9, 0.2, {"abc": {"name": "busy_stocks", "hypothesis": "volume leads."}})
     assert "busy stocks" in f and "volume leads" in f

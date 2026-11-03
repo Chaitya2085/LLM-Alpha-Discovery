@@ -267,7 +267,9 @@ class ComplianceOfficer(Agent):
 
 EXPLAIN_SYSTEM = (
     "You write short, plain-English notes about why a stock-ranking model ranked one stock highly this week. "
-    "Use ONLY the facts given. Do not add numbers, company news or opinions. Never tell anyone to buy, sell or "
+    "Use ONLY the facts given. Do not add numbers, company news or opinions. Write for a beginner: say what "
+    "each signal means in everyday words (e.g. 'its price and volume have barely moved together lately') "
+    "instead of percentile jargon, and never write 'top' next to 'low' in the same phrase. Never tell anyone to buy, sell or "
     "hold, never give price targets, never promise or predict returns. Reply with only a JSON object: "
     '{"summary": "<two short sentences, under 60 words>", "watch": "<one sentence: what would make this view wrong>"}')
 
