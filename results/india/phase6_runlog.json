@@ -1,0 +1,11 @@
+[
+  {
+    "ran_at": "2026-11-03T02:52:21+00:00",
+    "fingerprint": "b602c7c9ec6874a2267a5bcd4be8839d2deffdef1c8c623b628132368f8a8044",
+    "reason": "first run",
+    "verdicts": {
+      "Alpha158 only": "PROMISING",
+      "Alpha158 + LLM factors": "PROMISING"
+    }
+  }
+]

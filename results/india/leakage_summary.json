@@ -1,0 +1,30 @@
+{
+  "market": "india",
+  "holdout_start": "2021-01-01",
+  "latest": "2026-09-21",
+  "models": {
+    "groq: openai/gpt-oss-120b": {
+      "cutoff": "2024-06-01",
+      "factors": 237,
+      "weeks_before": 169,
+      "weeks_after": 114,
+      "ic_before": 0.005145346376544309,
+      "ic_after": 0.004603447457296626,
+      "placebo_ic_before": 0.004710557212872789,
+      "placebo_ic_after": 0.007037931226606714,
+      "extra_drop": 0.0028692729329816077,
+      "z": 2.531451452301472,
+      "status": "MEMORY SIGNAL"
+    }
+  },
+  "models_without_cutoff": [
+    "gemini: gemini-3.8-flash",
+    "openrouter: nvidia/nemotron-3-ultra-550b-a55b:free",
+    "seed: claude (chat)"
+  ],
+  "all_factors": {
+    "ic_discovery": 0.01313538589360352,
+    "ic_holdout": 0.005388777388259472,
+    "n": 659
+  }
+}

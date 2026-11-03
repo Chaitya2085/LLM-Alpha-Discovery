@@ -1,0 +1,205 @@
+{
+  "market": "india",
+  "fingerprint": "b602c7c9ec6874a2267a5bcd4be8839d2deffdef1c8c623b628132368f8a8044",
+  "years": [
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "variants": {
+    "Alpha158 only": {
+      "design": {
+        "stocks": 40,
+        "keep_zone": 120,
+        "trade_every_weeks": 1
+      },
+      "training": {
+        "2021": {
+          "train_rows": 280218,
+          "valid_rows": 48547,
+          "test_rows": 49147,
+          "best_iter": 29,
+          "secs": 5.6
+        },
+        "2022": {
+          "train_rows": 329965,
+          "valid_rows": 47953,
+          "test_rows": 49341,
+          "best_iter": 109,
+          "secs": 9.0
+        },
+        "2023": {
+          "train_rows": 379112,
+          "valid_rows": 48159,
+          "test_rows": 48782,
+          "best_iter": 67,
+          "secs": 8.1
+        },
+        "2024": {
+          "train_rows": 428465,
+          "valid_rows": 47588,
+          "test_rows": 49007,
+          "best_iter": 3,
+          "secs": 6.0
+        },
+        "2025": {
+          "train_rows": 477235,
+          "valid_rows": 47813,
+          "test_rows": 49444,
+          "best_iter": 120,
+          "secs": 12.0
+        },
+        "2026": {
+          "train_rows": 526242,
+          "valid_rows": 48244,
+          "test_rows": 36619,
+          "best_iter": 103,
+          "secs": 12.1
+        }
+      },
+      "book": {
+        "weeks": 284,
+        "ann_return": 0.17848330815729407,
+        "bench_ann_return": 0.11345720850913521,
+        "excess_ann": 0.06110636372143758,
+        "gross_excess_ann": 0.08748629329890237,
+        "info_ratio": 0.9593655366073588,
+        "weekly_hit_rate": 0.5528169014084507,
+        "max_drawdown": -0.21085058115542255,
+        "avg_turnover": 0.20194346289752652,
+        "cost_ann": 0.02625265017667844,
+        "avg_stocks": 40.0,
+        "weeks_invested_pct": 1.0
+      },
+      "weekly_rank_ic": 0.0425103140404464,
+      "weekly_rank_ic_t": 5.058489425958161,
+      "calibration": {
+        "stock_weeks": 56503,
+        "base_rate": 0.4820805974903987,
+        "brier": 0.2496299375088116,
+        "brier_no_skill": 0.24967889501369886,
+        "brier_skill": 0.00019608187101505248,
+        "ece": 0.009197549674808896,
+        "high_conf_n": 0,
+        "high_conf_hit_rate": NaN,
+        "high_conf_share": 0.0
+      },
+      "verdict": {
+        "verdict": "PROMISING",
+        "psr": 0.9909093012233854,
+        "dsr": 0.7085559658160866,
+        "luck_benchmark_weekly_sharpe": 0.10210663732484652,
+        "weekly_sharpe": 0.13304006285195602,
+        "excess_t": 2.2420309908467555,
+        "weeks": 284
+      },
+      "by_year": {
+        "2021": 0.017422126473532876,
+        "2022": 0.07281362923451698,
+        "2023": 0.14665712162988961,
+        "2024": 0.01141457623819294,
+        "2025": 0.03756594110012698,
+        "2026": 0.08800473519036517
+      }
+    },
+    "Alpha158 + LLM factors": {
+      "design": {
+        "stocks": 40,
+        "keep_zone": 120,
+        "trade_every_weeks": 1
+      },
+      "training": {
+        "2021": {
+          "train_rows": 280218,
+          "valid_rows": 48547,
+          "test_rows": 49147,
+          "best_iter": 84,
+          "secs": 9.1
+        },
+        "2022": {
+          "train_rows": 329965,
+          "valid_rows": 47953,
+          "test_rows": 49341,
+          "best_iter": 101,
+          "secs": 10.9
+        },
+        "2023": {
+          "train_rows": 379112,
+          "valid_rows": 48159,
+          "test_rows": 48782,
+          "best_iter": 46,
+          "secs": 9.3
+        },
+        "2024": {
+          "train_rows": 428465,
+          "valid_rows": 47588,
+          "test_rows": 49007,
+          "best_iter": 2,
+          "secs": 7.5
+        },
+        "2025": {
+          "train_rows": 477235,
+          "valid_rows": 47813,
+          "test_rows": 49444,
+          "best_iter": 151,
+          "secs": 16.6
+        },
+        "2026": {
+          "train_rows": 526242,
+          "valid_rows": 48244,
+          "test_rows": 36619,
+          "best_iter": 142,
+          "secs": 17.6
+        }
+      },
+      "book": {
+        "weeks": 284,
+        "ann_return": 0.1631299950389089,
+        "bench_ann_return": 0.11345720850913521,
+        "excess_ann": 0.04640635064683789,
+        "gross_excess_ann": 0.06867800557641536,
+        "info_ratio": 0.7495231516581363,
+        "weekly_hit_rate": 0.5633802816901409,
+        "max_drawdown": -0.20184292930233227,
+        "avg_turnover": 0.17022968197879856,
+        "cost_ann": 0.022129858657243814,
+        "avg_stocks": 40.0,
+        "weeks_invested_pct": 1.0
+      },
+      "weekly_rank_ic": 0.04060813290547549,
+      "weekly_rank_ic_t": 4.53501358850327,
+      "calibration": {
+        "stock_weeks": 56503,
+        "base_rate": 0.4820805974903987,
+        "brier": 0.24968179191197648,
+        "brier_no_skill": 0.24967889501369886,
+        "brier_skill": -1.1602495587181849e-05,
+        "ece": 0.011850386738836287,
+        "high_conf_n": 0,
+        "high_conf_hit_rate": NaN,
+        "high_conf_share": 0.0
+      },
+      "verdict": {
+        "verdict": "PROMISING",
+        "psr": 0.9610178303029924,
+        "dsr": 0.5124022943082955,
+        "luck_benchmark_weekly_sharpe": 0.10210663732484652,
+        "weekly_sharpe": 0.10394015982503012,
+        "excess_t": 1.751630708267184,
+        "weeks": 284
+      },
+      "by_year": {
+        "2021": -0.020593449328086412,
+        "2022": 0.040773854289542985,
+        "2023": 0.07167113236591213,
+        "2024": -0.01879766110990533,
+        "2025": 0.06720484836820609,
+        "2026": 0.16990663983899187
+      }
+    }
+  },
+  "seconds": 154
+}
