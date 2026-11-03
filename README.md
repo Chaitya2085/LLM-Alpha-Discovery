@@ -248,12 +248,12 @@ daily files, downloaded on your computer by `python run_india.py`.
   DP charge); a stock locked at its circuit limit can't be traded at the open.
 
 <!-- AUTO:india_data -->
-- NSE data **1 Jan 2014 to 9 Oct 2026**: 3,149 trading days; universe from 1 Apr 2014
-- **664** different stocks passed through the top-200 universe (median 200 members a day)
+- NSE data **1 Jan 2014 to 2 Nov 2026**: 3,164 trading days; universe from 1 Apr 2014
+- **670** different stocks passed through the top-200 universe (median 200 members a day)
 - Corporate actions adjusted: **123** splits (ISIN changed), **161** bonuses and **36** other events (demergers etc.), found in the price data
 - One-day moves over 25% left among top-200 stocks: 97
-- Benchmark: **Nifty 200**, 3,163 → 13,063
-- Locked-circuit days among members: 0.029% up, 0.039% down
+- Benchmark: **Nifty 200**, 3,163 → 13,396
+- Locked-circuit days among members: 0.028% up, 0.039% down
 <!-- /AUTO:india_data -->
 
 <!-- AUTO:india_phase1_table -->
@@ -267,7 +267,7 @@ daily files, downloaded on your computer by `python run_india.py`.
 | Nifty 200 index (buy & hold) |  |  |  | 12.0% | +0.0% |  | −37.9% |  | +25.1% |
 | Equal-weight top-200 NSE (gross) |  |  |  | 14.6% | +2.8% |  | −53.0% |  | +52.1% |
 
-Test period 2 Jan 2017 to 9 Oct 2026 (the last year is year-to-date). \*Paper window = 1 Jan 2023 to 31 Jan 2024, the paper's China test period, shown for comparison.
+Test period 2 Jan 2017 to 2 Nov 2026 (the last year is year-to-date). \*Paper window = 1 Jan 2023 to 31 Jan 2024, the paper's China test period, shown for comparison.
 <!-- /AUTO:india_phase1_table -->
 
 **Do the LLM factors work in India too?** Each factor is scored on India's 2014–2020
@@ -515,6 +515,13 @@ Held-out years 2021–2026 (the last is year-to-date). Exam runs so far: **1** (
 |---|---|---|---|---|---|---|
 | Alpha158 only | +1.7% | +7.3% | +14.7% | +1.1% | +3.8% | +8.8% |
 | Alpha158 + LLM factors | −2.1% | +4.1% | +7.2% | −1.9% | +6.7% | +17.0% |
+
+**Against simply holding all 200 stocks equally** (a check added after the exam; the pre-registered benchmark is the Nifty 200). Equal weight is shown before its own small rebalancing costs.
+
+| Model | Model / yr, after costs | Equal-weight top-200 / yr | Nifty 200 / yr | Excess vs equal weight | Weeks beating equal weight |
+|---|---|---|---|---|---|
+| Alpha158 only | 17.8% | 18.7% | 11.3% | −1.1% | 50% |
+| Alpha158 + LLM factors | 16.3% | 18.7% | 11.3% | −2.6% | 50% |
 <!-- /AUTO:phase6_table -->
 
 ### Leakage test: invention or memory?
@@ -544,7 +551,7 @@ calls on named stocks needs SEBI registration. After 31 days each file is reveal
 back-date a prediction. `python src/ledger.py verify` re-checks the whole chain.
 
 <!-- AUTO:ledger_status -->
-_Run `python run_ledger.py` each week to start the ledger._
+- **2** weekly predictions fingerprinted, from 2026-11-02 to 2026-11-02; **0** revealed (31+ days old)
 <!-- /AUTO:ledger_status -->
 
 **Checks:** 5 Phase 6 tests: the luck statistics match their formulas; on a synthetic market the

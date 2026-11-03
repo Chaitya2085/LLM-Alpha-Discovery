@@ -291,6 +291,20 @@ def phase6_table(cfg=INDIA) -> str | None:
     for name, v in s["variants"].items():
         by_year.append(f"| {name} | " + " | ".join(pct(v["by_year"].get(str(y), v["by_year"].get(y)), signed=True)
                                                   for y in yrs) + " |")
+    wf = cfg.results / "phase6_weekly.csv"
+    if wf.exists():
+        w = pd.read_csv(wf, parse_dates=["date"])
+        by_year += ["", "**Against simply holding all 200 stocks equally** (a check added after the exam; the "
+                        "pre-registered benchmark is the Nifty 200). Equal weight is shown before its own small "
+                        "rebalancing costs.", "",
+                    "| Model | Model / yr, after costs | Equal-weight top-200 / yr | Nifty 200 / yr | "
+                    "Excess vs equal weight | Weeks beating equal weight |", "|---|---|---|---|---|---|"]
+        for name, g in w.groupby("variant", sort=False):
+            n_y = len(g) / 52
+            cagr = lambda r: (1 + r).prod() ** (1 / n_y) - 1  # noqa: E731
+            ex = g["net"] - g["universe"]
+            by_year.append(f"| {name} | {pct(cagr(g['net']))} | {pct(cagr(g['universe']))} | {pct(cagr(g['bench']))} | "
+                           f"{pct(ex.mean() * 52, signed=True)} | {(ex > 0).mean():.0%} |")
     head = (f"Held-out years {yrs[0]}–{yrs[-1]} (the last is year-to-date). Exam runs so far: **{len(runs)}**"
             + (f" (first on {runs[0]['ran_at'][:10]})" if runs else "") + ". \"Chance the edge is real\" is the "
             "Deflated Sharpe Ratio: the probability the after-cost edge beats what luck alone would give the "
