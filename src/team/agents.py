@@ -365,7 +365,8 @@ class Reporter(Agent):
         lines = [f"# Weekly evidence report, data through {as_of}", "",
                  "*Personal mode: stays on this computer.*", "", "## This week", "",
                  f"- Market mood: **{regime}**",
-                 f"- Ledger: {len(commits)} prediction file(s) fingerprinted; "
+                 f"- Ledger: {len({c['as_of'] for c in commits})} week(s) of predictions fingerprinted "
+                 f"({len(commits)} books); "
                  f"{health.get('revealed_weeks', 0)} revealed week(s) scored"]
         for k, v in health.items():
             if isinstance(v, dict):
@@ -397,7 +398,8 @@ class Reporter(Agent):
         lines = [f"# LLM Alpha Discovery: research update, data through {as_of}", "",
                  f"*Learn mode: uses only data at least {compliance.LEARN_LAG_DAYS} days old and names no stock "
                  "in a current book.*", "", "## The record", "",
-                 f"- Weekly predictions fingerprinted so far: **{len(commits)}** (each one locked before its week "
+                 f"- Weeks of predictions fingerprinted so far: **{len({c['as_of'] for c in commits})}** "
+                 f"({len(commits)} books, each locked before its week "
                  "began; see ledger/commitments.csv)",
                  f"- Revealed and scored: **{health.get('revealed_weeks', 0)}** week(s)"]
         if len(reg_old):
