@@ -5,8 +5,9 @@
     "kind": "research-round",
     "question": "Run a monthly research round? (Gemini and Groq, 3 rounds, about 12 free API calls)",
     "detail": "last round: 2026-10-11",
-    "status": "pending",
+    "status": "approved",
     "asked_at": "2026-11-14T12:01:23+00:00",
-    "answered_at": null
+    "answered_at": "2026-11-14T12:28:17+00:00",
+    "note": ""
   }
 ]

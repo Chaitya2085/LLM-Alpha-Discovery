@@ -21,7 +21,12 @@ export default function LineChart({ dates, series, fmt = v => v.toFixed(2), heig
       const key = byYear ? d.slice(0, 4) : d.slice(0, 7);
       if (i === 0 || key !== (byYear ? dates[i - 1].slice(0, 4) : dates[i - 1].slice(0, 7))) marks.push([i, byYear ? key : new Date(d).toLocaleDateString(undefined, { month: "short" })]);
     });
-    return { x, y, ticks, marks: byYear ? marks : marks.filter((_, k) => k % 2 === 0) };
+    const spaced = [];                                   // drop a label that would collide with the previous one
+    (byYear ? marks : marks.filter((_, k) => k % 2 === 0)).forEach(mk => {
+      if (!spaced.length || x(mk[0]) - x(spaced[spaced.length - 1][0]) > 44) spaced.push(mk);
+      else if (spaced.length === 1 && mk[0] > 0) spaced[0] = mk;   // prefer a full period over a stub at the start
+    });
+    return { x, y, ticks, marks: spaced };
   }, [dates, series, H]); // eslint-disable-line react-hooks/exhaustive-deps
   const path = vals => vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join("");
   const move = e => {

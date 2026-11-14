@@ -163,8 +163,10 @@ research round after approval.
 
 **8a (built):** a local app (`python run_app.py`): war room, track record and this week's
 explanations, on FastAPI + React/Vite, listening on your computer only. Also built: a 3D office, a page for every
-stock, the research lab (test an idea in plain English) and the strategy library. **Next:** the public
-Learn-mode version after the Phase 9 review.
+stock, the research lab (test an idea in plain English) and the strategy library. Plus an edge audit (`src/edge_audit.py`): how much of the return a simple
+copy explains, what picking adds, and 10,000 one-year replays; and a market health score
+(`src/market_health.py`) tested for whether it would have warned of bad weeks. **Next:** the public Learn-mode version
+after the Phase 9 review.
 
 Inspired by "AI office" dashboards: an **isometric trading floor** where you watch the
 agents work.

@@ -123,6 +123,7 @@ class RegimeWatcher(Agent):
             return Result(WARN, "no regime")
         now_, before = reg.iloc[-1], reg.iloc[-6] if len(reg) > 5 else reg.iloc[0]
         ctx.shared["regime"] = now_
+        self.health(ctx)
         if now_ != before:
             msg = f"Market mood changed this week: {before} -> {now_}"
             ctx.journal.add(self.name, msg)
@@ -131,6 +132,21 @@ class RegimeWatcher(Agent):
             msg = f"Market mood: {now_} (unchanged this week)"
             self.say(ctx, "label", msg, regime=now_)
         return Result(OK, msg, {"regime": now_})
+
+
+    def health(self, ctx: Context) -> None:
+        """Market health 0-100 from NSE breadth; context only unless its own test says it warns."""
+        import market_health
+        try:
+            h = market_health.run(ctx.cfg, m=ctx.market(), log=lambda *a: None)
+        except (Exception, SystemExit) as e:  # noqa: BLE001 - never stops the run
+            self.say(ctx, "health", f"Market health skipped: {str(e)[:100]}", WARN)
+            return
+        ctx.shared["health"] = h
+        use = "would have warned in the past" if h["verdict"] == "USEFUL WARNING" else "context only (it has not reliably warned)"
+        status = WARN if h["zone"] == "weak" else OK
+        self.say(ctx, "health", f"Market health {h['score']:.0f}/100 ({h['zone']}); {use}", status,
+                 score=round(h["score"], 1), zone=h["zone"])
 
 
 class ModelTrainer(Agent):
@@ -177,7 +193,34 @@ class ModelTrainer(Agent):
             msg += f"; {len(scores)} revealed week(s) so far (health checks start at 8)"
         ctx.shared["model_health"] = health
         self.say(ctx, "health", msg, status, **health)
+        self.audit(ctx, p)
         return Result(status, msg, health)
+
+    def audit(self, ctx: Context, p) -> None:
+        """Is the edge real? On the exam weeks once, then on the live ledger as it grows."""
+        import edge_audit
+        try:
+            have = (ctx.cfg.results / "edge_audit.json").exists()
+            if not have and (ctx.cfg.results / "phase6_weekly.csv").exists():
+                edge_audit.run(ctx.cfg, log=lambda *a: None)
+            res = edge_audit.run(ctx.cfg, live=True, p=p, log=lambda *a: None)
+        except (Exception, SystemExit) as e:  # noqa: BLE001 - the audit never stops the weekly run
+            self.say(ctx, "audit", f"Edge audit skipped: {str(e)[:100]}", WARN)
+            return
+        for v, a in res.get("live", {}).items():
+            if "decompose" in a:
+                e = a["decompose"]["equal"]
+                self.say(ctx, "audit", f"{v}, live: {e['alpha_ann']:+.1%} a year beyond equal weight "
+                         f"(t {e['alpha_t']:.1f}): {e['verdict'].lower()}")
+                break
+        else:
+            ex = next(iter(res.get("exam", {}).values()), None)
+            if ex:
+                e = ex["decompose"]["equal"]
+                n = max((x.get("weeks", 0) for x in res.get("live", {}).values()), default=0)
+                self.say(ctx, "audit", f"Edge check (exam weeks): {e['alpha_ann']:+.1%} a year beyond equal weight, "
+                         f"t {e['alpha_t']:.1f}, {e['verdict'].lower()}; the live check starts at "
+                         f"{edge_audit.MIN_WEEKS} revealed weeks ({n} so far)")
 
 
 # ---------------------------------------------------------------- risk & compliance
@@ -368,6 +411,8 @@ class Reporter(Agent):
         lines = [f"# Weekly evidence report, data through {as_of}", "",
                  "*Personal mode: stays on this computer.*", "", "## This week", "",
                  f"- Market mood: **{regime}**",
+                 *([f"- Market health: **{ctx.shared['health']['score']:.0f}/100 ({ctx.shared['health']['zone']})**; "
+                    f"test verdict: {ctx.shared['health']['verdict'].lower()}"] if ctx.shared.get("health") else []),
                  f"- Ledger: {len({c['as_of'] for c in commits})} week(s) of predictions fingerprinted "
                  f"({len(commits)} books); "
                  f"{health.get('revealed_weeks', 0)} revealed week(s) scored"]
@@ -407,6 +452,13 @@ class Reporter(Agent):
                  f"- Revealed and scored: **{health.get('revealed_weeks', 0)}** week(s)"]
         if len(reg_old):
             lines.append(f"- Market mood on {reg_old.index[-1].date()}: {reg_old.iloc[-1]}")
+        hf = ctx.cfg.results / "market_health.csv"
+        if hf.exists():
+            hh = pd.read_csv(hf, parse_dates=["date"]).dropna(subset=["score"])
+            hh = hh[hh["date"] <= cutoff]
+            if len(hh):
+                lines.append(f"- Market health on {hh['date'].iloc[-1].date()}: {hh['score'].iloc[-1]:.0f}/100 "
+                             f"({hh['zone'].iloc[-1]})")
         scores = pd.read_csv(p["scores"]) if p["scores"].exists() else pd.DataFrame()
         if len(scores):
             scores = scores[pd.to_datetime(scores["as_of"]) <= cutoff].sort_values("as_of")

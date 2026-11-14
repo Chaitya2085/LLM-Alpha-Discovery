@@ -250,13 +250,17 @@ def score(cfg, p=None) -> pd.DataFrame:
         d = pd.Timestamp(c["as_of"])
         if not f.exists() or d not in fwd5.index or pd.isna(bench5.get(d)):
             continue
-        picks = pd.read_csv(f).query("in_book")["code"]
+        ranked = pd.read_csv(f)
+        picks = ranked.query("in_book")["code"]
         r = fwd5.loc[d].reindex(picks)
         if r.notna().sum() == 0:
             continue
+        eq = fwd5.loc[d].reindex(ranked["code"])                # every stock ranked that week, equal weight
         out.append({"as_of": c["as_of"], "variant": c["variant"], "stocks": int(r.notna().sum()),
                     "book_return": float(r.mean()), "index_return": float(bench5[d]),
-                    "excess": float(r.mean() - bench5[d]), "beat_index": bool(r.mean() > bench5[d])})
+                    "equal_return": float(eq.mean()),
+                    "excess": float(r.mean() - bench5[d]), "beat_index": bool(r.mean() > bench5[d]),
+                    "beat_equal": bool(r.mean() > eq.mean())})
     s = pd.DataFrame(out)
     if len(s):
         s.to_csv(p["scores"], index=False)

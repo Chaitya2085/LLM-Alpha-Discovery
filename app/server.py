@@ -131,7 +131,10 @@ def create_app(cfg=None, ledger_paths=None, team_runner=None) -> FastAPI:
                            "status": e["status"] if e else "idle", "message": e["message"] if e else None,
                            "time": e["time"] if e else None})
         commits = ledger.read_commits(lp)
+        hf = cfg.results / "market_health.json"
+        health = json.loads(hf.read_text()) if hf.exists() else None
         return clean({
+            "health": {k: health[k] for k in ("score", "zone", "as_of", "verdict")} if health else None,
             "market": cfg.name, "as_of": as_of, "regime": regime, "agents": agents,
             "last_run": {"started": last_start and last_start["time"], "finished": last_finish and last_finish["time"],
                          "status": last_finish and last_finish["status"], "message": last_finish and last_finish["message"]},
@@ -189,7 +192,17 @@ def create_app(cfg=None, ledger_paths=None, team_runner=None) -> FastAPI:
                                   "revealed": (lp["revealed"] / c["file"]).exists()})
         if lp["scores"].exists():
             out["scores"] = pd.read_csv(lp["scores"]).to_dict("records")
+        audit_f = res / "edge_audit.json"
+        out["audit"] = json.loads(audit_f.read_text()) if audit_f.exists() else None
         return clean(out)
+
+    @app.get("/api/health")
+    def health():
+        import market_health
+        hf = cfg.results / "market_health.json"
+        if not hf.exists():
+            return {"health": None}
+        return clean({"health": json.loads(hf.read_text()), "history": market_health.history(cfg)})
 
     @app.get("/api/week")
     def week():

@@ -248,11 +248,11 @@ daily files, downloaded on your computer by `python run_india.py`.
   DP charge); a stock locked at its circuit limit can't be traded at the open.
 
 <!-- AUTO:india_data -->
-- NSE data **1 Jan 2014 to 2 Nov 2026**: 3,164 trading days; universe from 1 Apr 2014
+- NSE data **1 Jan 2014 to 13 Nov 2026**: 3,172 trading days; universe from 1 Apr 2014
 - **670** different stocks passed through the top-200 universe (median 200 members a day)
 - Corporate actions adjusted: **123** splits (ISIN changed), **161** bonuses and **36** other events (demergers etc.), found in the price data
 - One-day moves over 25% left among top-200 stocks: 97
-- Benchmark: **Nifty 200**, 3,163 → 13,396
+- Benchmark: **Nifty 200**, 3,163 → 14,325
 - Locked-circuit days among members: 0.028% up, 0.039% down
 <!-- /AUTO:india_data -->
 
@@ -267,7 +267,7 @@ daily files, downloaded on your computer by `python run_india.py`.
 | Nifty 200 index (buy & hold) |  |  |  | 12.0% | +0.0% |  | −37.9% |  | +25.1% |
 | Equal-weight top-200 NSE (gross) |  |  |  | 14.6% | +2.8% |  | −53.0% |  | +52.1% |
 
-Test period 2 Jan 2017 to 2 Nov 2026 (the last year is year-to-date). \*Paper window = 1 Jan 2023 to 31 Jan 2024, the paper's China test period, shown for comparison.
+Test period 2 Jan 2017 to 13 Nov 2026 (the last year is year-to-date). \*Paper window = 1 Jan 2023 to 31 Jan 2024, the paper's China test period, shown for comparison.
 <!-- /AUTO:india_phase1_table -->
 
 **Do the LLM factors work in India too?** Each factor is scored on India's 2014–2020
@@ -541,6 +541,51 @@ All 659 factors: average weekly IC +0.0131 in 2014–2020, +0.0054 from 2021 (in
 No cutoff entered yet for: gemini: gemini-3.8-flash, openrouter: nvidia/nemotron-3-ultra-550b-a55b:free, seed: claude (chat) (add them to `config/llm_cutoffs.csv`).
 <!-- /AUTO:leakage_table -->
 
+### Is the edge real? (where the return comes from, and the range of outcomes)
+
+The exam beat the Nifty 200 but not "hold all 200 stocks equally". `src/edge_audit.py` asks the next
+question: once the part a simple copy explains is taken out, does the stock picking add anything?
+It regresses the model's weekly return (after costs) on baselines declared in advance (equal weight;
+the Nifty 200; the Nifty 200 plus the size tilt), with Newey-West errors, and replays the exam weeks
+10,000 times in 4-week blocks to show how one year could have gone. Ideas adapted from
+[tradermonty/claude-trading-skills](https://github.com/tradermonty/claude-trading-skills)
+(residual-edge-analyzer) and [jakeschincariol/day-trader-skill](https://github.com/jakeschincariol/day-trader-skill)
+(the Time Machine), both MIT; the code here is our own.
+
+<!-- AUTO:edge_audit -->
+| Version | Model (average a year, after costs) | Nifty 200 | Equal weight | Picking edge beyond equal weight | Verdict | Beat equal weight in 1-year replays |
+|---|---|---|---|---|---|---|
+| Alpha158 + LLM factors | +16.5% | +11.8% | +19.1% | +1.7% (t 0.5) | NOT PROVEN | 40% |
+| Alpha158 only | +18.0% | +11.8% | +19.1% | +2.1% (t 0.7) | NOT PROVEN | 44% |
+
+- **Alpha158 + LLM factors**: against the Nifty 200 alone the leftover is +4.2% a year (t 1.7); with the size tilt added +2.6% (t 1.1). One-year replays: beat the index 77.3%, lost money 16.2%.
+- **Alpha158 only**: against the Nifty 200 alone the leftover is +4.9% a year (t 1.9); with the size tilt added +2.9% (t 1.1). One-year replays: beat the index 82.8%, lost money 14.1%.
+
+The same test runs on the live ledger once 26 weeks have been revealed.
+<!-- /AUTO:edge_audit -->
+
+### Market health: a breadth score, and whether it would have warned
+
+`src/market_health.py` scores how broad the NSE market is (0-100) from our own data: stocks above
+their 200- and 50-day averages, stocks rising minus falling, new 52-week highs minus lows, sectors in
+an uptrend, and the Nifty 200's own trend, each compared with its earlier history. The Regime Watcher
+works it out every run. Before the team leans on it, it is tested: did weeks with a weak score (under
+30, fixed in advance) come before worse weeks for the Nifty 200, in 2014-2020 and again in 2021-now?
+And on the exam weeks, would holding half the book in cash while it is weak have helped? Idea adapted
+from [tradermonty/claude-trading-skills](https://github.com/tradermonty/claude-trading-skills)
+(market breadth, exposure coach; MIT); the code is our own.
+
+<!-- AUTO:market_health -->
+| Period | Weeks | Weak weeks (under 30): Nifty 200 next week | Other weeks | Difference (t) | Worst 4-week fall, weak vs other |
+|---|---|---|---|---|---|
+| 2014–2020 | 285 | -0.08% (86 weeks) | +0.30% | -0.39% (-1.0) | -3.56% vs -2.46% |
+| 2021–now | 305 | +0.80% (60 weeks) | +0.23% | +0.57% (1.3) | -2.65% vs -2.18% |
+
+Today: **68/100 (middle)** on 2026-11-13. Verdict: **WEAK HINT**: Weak scores leaned towards worse weeks in both periods, but not beyond luck.
+- Alpha158 + LLM factors (exam weeks): always invested +18.1% a year, worst fall -20%; half in cash when weak +14.5%, worst fall -21% (49 weak weeks of 280).
+- Alpha158 only (exam weeks): always invested +19.7% a year, worst fall -21%; half in cash when weak +15.6%, worst fall -23% (49 weak weeks of 280).
+<!-- /AUTO:market_health -->
+
 ### The prediction ledger
 
 From now on, every week's predictions are made **before** the week starts and fingerprinted
@@ -551,7 +596,7 @@ calls on named stocks needs SEBI registration. After 31 days each file is reveal
 back-date a prediction. `python src/ledger.py verify` re-checks the whole chain.
 
 <!-- AUTO:ledger_status -->
-- **2** weekly predictions fingerprinted, from 2026-11-02 to 2026-11-02; **0** revealed (31+ days old)
+- **4** weekly predictions fingerprinted, from 2026-11-02 to 2026-11-13; **0** revealed (31+ days old)
 <!-- /AUTO:ledger_status -->
 
 **Checks:** 5 Phase 6 tests: the luck statistics match their formulas; on a synthetic market the

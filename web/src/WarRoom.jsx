@@ -26,6 +26,8 @@ function Strip({ o, reload }) {
       <div className="stat"><span className="eyebrow">Market mood</span><b>{o?.regime || "–"}</b><span className="small muted">from the Nifty 200</span></div>
       <div className="stat"><span className="eyebrow">Last run</span><b>{o?.running ? "running…" : (STATUS_LABEL[lr.status] || "never")}</b>
         <span className="small muted">{o?.running ? "the team is working" : ago(lr.finished)}</span></div>
+      <div className="stat"><span className="eyebrow">Market health</span><b>{o?.health ? `${Math.round(o.health.score)}/100` : "–"}</b>
+        <span className="small muted">{o?.health ? `${o.health.zone}${o.health.verdict === "USEFUL WARNING" ? "" : " · context only"}` : "breadth of the top 200"}</span></div>
       <div className="stat"><span className="eyebrow">Ledger</span><b>{o?.ledger_weeks ?? "–"} week{o?.ledger_weeks === 1 ? "" : "s"}</b><span className="small muted">predictions sealed</span></div>
       <div className="runbox">
         <button className="btn primary" disabled={busy || o?.running} onClick={() => start(false, false)}

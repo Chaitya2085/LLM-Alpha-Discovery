@@ -423,13 +423,14 @@ export default class Office3D {
     g.fillStyle = "#1d3a2e"; g.fillRect(40, 92, W - 80, 3);
     const rows = [
       ["Data through", o?.as_of || "–"], ["Market mood", o?.regime || "–"],
+      ["Market health", o?.health ? `${Math.round(o.health.score)}/100 (${o.health.zone})` : "–"],
       ["Last run", o?.running ? "running…" : (o?.last_run?.status || "–")], ["Ledger", `${o?.ledger_weeks ?? 0} week(s) sealed`],
     ];
     if (exam) rows.push(["Exam 2021+", `${(exam.model * 100).toFixed(1)}% vs ${(exam.index * 100).toFixed(1)}% a year`], ["Verdict", exam.verdict]);
     g.font = "400 34px Menlo, monospace";
     rows.forEach(([k, v], i) => {
-      g.fillStyle = "#8fb3a3"; g.fillText(k, 40, 150 + i * 58);
-      g.fillStyle = "#eaf5ef"; g.fillText(v, 380, 150 + i * 58);
+      g.fillStyle = "#8fb3a3"; g.fillText(k, 40, 140 + i * 52);
+      g.fillStyle = "#eaf5ef"; g.fillText(v, 380, 140 + i * 52);
     });
     s.tex.needsUpdate = true;
   }

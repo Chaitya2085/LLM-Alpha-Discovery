@@ -48,7 +48,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; display: grid
 .err { background: var(--stop-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; }
 
 /* status strip */
-.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 12px; align-items: stretch; }
+.strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 12px; align-items: stretch; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
 .stat b { font: 500 1.15rem/1.2 var(--mono); }
 .runbox { display: grid; gap: 6px; align-content: center; }
@@ -198,3 +198,19 @@ tr.detail p { margin: 6px 0; }
 .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
 .linkish { border: 0; background: none; padding: 0; color: var(--ink); cursor: pointer; text-align: left; }
 .linkish:hover { color: var(--accent); }
+
+/* edge audit */
+.splitbar { display: flex; height: 18px; border-radius: 5px; overflow: hidden; gap: 2px; background: var(--card); }
+.splitbar span { display: block; min-width: 4px; }
+.ranges { display: grid; gap: 10px; }
+.range-row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 190px; gap: 12px; align-items: center; }
+.range-track { position: relative; height: 16px; background: var(--grey-soft); border-radius: 4px; }
+.range-track i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.range-track b { position: absolute; top: -3px; bottom: -3px; width: 3px; border-radius: 2px; }
+@media (max-width: 640px) { .range-row { grid-template-columns: 1fr; gap: 4px; } }
+.comp-list { display: grid; gap: 8px; }
+.comp { display: grid; grid-template-columns: 260px minmax(0, 1fr) 36px; gap: 12px; align-items: center; }
+.comp-track { position: relative; height: 10px; background: var(--grey-soft); border-radius: 5px; }
+.comp-track i { position: absolute; inset: 0 auto 0 0; background: var(--s-model); border-radius: 5px; }
+.comp-track b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.4; }
+@media (max-width: 640px) { .comp { grid-template-columns: 1fr 36px; } .comp .comp-track { grid-column: 1 / -1; grid-row: 2; } }

@@ -353,6 +353,33 @@ def ledger_status() -> str | None:
     return "\n".join(lines)
 
 
+def edge_audit_table(cfg=INDIA) -> str | None:
+    f = cfg.results / "edge_audit.json"
+    if not f.exists():
+        return None
+    import edge_audit
+    a = json.loads(f.read_text())
+    lines = [edge_audit.summary_table(a), ""]
+    for v, x in a.get("exam", {}).items():
+        d = x["decompose"]
+        lines.append(f"- **{v}**: against the Nifty 200 alone the leftover is {pct(d['index']['alpha_ann'], signed=True)} "
+                     f"a year (t {num(d['index']['alpha_t'], '{:.1f}')}); with the size tilt added "
+                     f"{pct(d['two_factor']['alpha_ann'], signed=True)} (t {num(d['two_factor']['alpha_t'], '{:.1f}')}). "
+                     f"One-year replays: beat the index {pct(x['replay']['p_beat_index'])}, lost money "
+                     f"{pct(x['replay']['p_loss'])}.")
+    live = {k: v for k, v in a.get("live", {}).items() if "decompose" in v}
+    lines.append("" if live else "\nThe same test runs on the live ledger once 26 weeks have been revealed.")
+    return "\n".join(lines).rstrip()
+
+
+def market_health_table(cfg=INDIA) -> str | None:
+    f = cfg.results / "market_health.json"
+    if not f.exists():
+        return None
+    import market_health
+    return market_health.table(json.loads(f.read_text()))
+
+
 BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "phase2_shortlist": phase2_shortlist, "phase2_models": phase2_models,
           "india_data": india_data,
@@ -362,7 +389,8 @@ BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "india_transfer": india_transfer,
           "phase4_summary": phase4_summary, "phase4_best": phase4_best,
           "phase5_table": phase5_table, "phase5_grid": phase5_grid, "phase5_regimes": phase5_regimes,
-          "phase6_table": phase6_table, "leakage_table": leakage_table, "ledger_status": ledger_status}
+          "phase6_table": phase6_table, "leakage_table": leakage_table, "ledger_status": ledger_status,
+          "edge_audit": edge_audit_table, "market_health": market_health_table}
 
 
 def main() -> None:

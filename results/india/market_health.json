@@ -1,0 +1,161 @@
+{
+ "created_at": "2026-11-14T13:00:58.216775+00:00",
+ "as_of": "2026-11-13",
+ "score": 67.61787619764074,
+ "zone": "middle",
+ "low": 30,
+ "high": 70,
+ "components": {
+  "above_200": {
+   "name": "Stocks above their 200-day average",
+   "score": 53.59487852921865,
+   "raw": 0.62
+  },
+  "above_50": {
+   "name": "Stocks above their 50-day average",
+   "score": 67.07395498392283,
+   "raw": 0.67
+  },
+  "adv_dec": {
+   "name": "Stocks rising minus falling (10-day)",
+   "score": 96.16252821670429,
+   "raw": 0.22500000000000014
+  },
+  "highs_lows": {
+   "name": "New 52-week highs minus lows (10-day)",
+   "score": 71.02757715036113,
+   "raw": 0.05649999999999998
+  },
+  "sectors": {
+   "name": "Sectors in an uptrend",
+   "score": 68.32797427652733,
+   "raw": 0.7647058823529411
+  },
+  "index_trend": {
+   "name": "Nifty 200 against its 200-day average",
+   "score": 49.520344029110156,
+   "raw": 0.04276995054054944
+  }
+ },
+ "verdict": "WEAK HINT",
+ "why": "Weak scores leaned towards worse weeks in both periods, but not beyond luck",
+ "test": {
+  "discovery": {
+   "from": "2015-07-17",
+   "weeks": 285,
+   "zones": {
+    "weak": {
+     "weeks": 86,
+     "next_week": -0.0008422503492254733,
+     "bad_weeks": 0.22093023255813954,
+     "fall_4w": -0.035631749232520514
+    },
+    "middle": {
+     "weeks": 146,
+     "next_week": 0.003305132831948355,
+     "bad_weeks": 0.10273972602739725,
+     "fall_4w": -0.028235995789636006
+    },
+    "strong": {
+     "weeks": 53,
+     "next_week": 0.002308617003830418,
+     "bad_weeks": 0.07547169811320754,
+     "fall_4w": -0.014573085050540743
+    }
+   },
+   "weak_vs_rest_next_week": {
+    "diff": -0.0038819794681574883,
+    "t": -1.0010035543971354
+   },
+   "weak_vs_rest_fall_4w": {
+    "diff": -0.011034619117115887,
+    "t": -1.3354656419441662
+   }
+  },
+  "holdout": {
+   "from": "2021-01-01",
+   "weeks": 305,
+   "zones": {
+    "weak": {
+     "weeks": 60,
+     "next_week": 0.007994714313270654,
+     "bad_weeks": 0.2,
+     "fall_4w": -0.02646893001808731
+    },
+    "middle": {
+     "weeks": 153,
+     "next_week": 0.00324539346275023,
+     "bad_weeks": 0.13071895424836602,
+     "fall_4w": -0.023360984653418057
+    },
+    "strong": {
+     "weeks": 92,
+     "next_week": 0.0007204119076903163,
+     "bad_weeks": 0.16304347826086957,
+     "fall_4w": -0.019260277755757
+    }
+   },
+   "weak_vs_rest_next_week": {
+    "diff": 0.005697477189563328,
+    "t": 1.333314805195525
+   },
+   "weak_vs_rest_fall_4w": {
+    "diff": -0.0046478026486889215,
+    "t": -1.0072171256263023
+   }
+  }
+ },
+ "exam": {
+  "Alpha158 + LLM factors": {
+   "weeks": 280,
+   "weak_weeks": 49,
+   "excess_vs_index": {
+    "weak": 0.0027109394388456468,
+    "middle": 0.0002507737383049226,
+    "strong": 0.0008504042260995625
+   },
+   "excess_vs_equal": {
+    "weak": 0.0009491300973047432,
+    "middle": -0.0007849115844826087,
+    "strong": -0.0012003327463890948
+   },
+   "always": {
+    "ann_return": 0.18088327773755752,
+    "worst_fall": -0.20184292930233227,
+    "sharpe": 1.0974805752521999
+   },
+   "half_cash_when_weak": {
+    "ann_return": 0.14491701886896258,
+    "worst_fall": -0.2056280012837015,
+    "sharpe": 1.0260803887414154
+   },
+   "switches": 31
+  },
+  "Alpha158 only": {
+   "weeks": 280,
+   "weak_weeks": 49,
+   "excess_vs_index": {
+    "weak": 0.003776099501142477,
+    "middle": 0.00039921673652447995,
+    "strong": 0.0009465925808197716
+   },
+   "excess_vs_equal": {
+    "weak": 0.0020142901596015735,
+    "middle": -0.0006364685862630513,
+    "strong": -0.001104144391668885
+   },
+   "always": {
+    "ann_return": 0.197066055329832,
+    "worst_fall": -0.2124692493054977,
+    "sharpe": 1.1255516238640297
+   },
+   "half_cash_when_weak": {
+    "ann_return": 0.15580659652377493,
+    "worst_fall": -0.22823850688483516,
+    "sharpe": 1.053529185434459
+   },
+   "switches": 31
+  }
+ },
+ "note": "Cut-offs (30/70) and the half-cash rule were fixed before the test. Sectors use today's Nifty 200 sector list for all years."
+}

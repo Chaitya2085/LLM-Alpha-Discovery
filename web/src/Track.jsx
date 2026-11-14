@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { usePoll, pct, signed, lakh } from "./api.js";
+import Audit from "./Audit.jsx";
+import Health from "./Health.jsx";
 
 const SERIES = [
   { key: "model", label: "The model", color: "var(--s-model)", width: 2.5 },
@@ -170,6 +172,8 @@ export default function Track() {
   return (
     <>
       {t.exam ? <Exam exam={t.exam} growth={t.growth} /> : <p className="empty">Run the final exam first: python run_phase6.py</p>}
+      {t.audit && <Audit audit={t.audit} />}
+      <Health />
       <Ledger rows={t.ledger} scores={t.scores} />
     </>
   );

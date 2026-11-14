@@ -33,3 +33,7 @@ jobs:
         run: python tests/test_phase7.py
       - name: Phase 8 app tests
         run: python tests/test_phase8.py
+      - name: Edge audit tests
+        run: python tests/test_edge_audit.py
+      - name: Market health tests
+        run: python tests/test_market_health.py
