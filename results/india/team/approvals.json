@@ -1,0 +1,12 @@
+[
+  {
+    "id": "d04dc6",
+    "agent": "Research lead",
+    "kind": "research-round",
+    "question": "Run a monthly research round? (Gemini and Groq, 3 rounds, about 12 free API calls)",
+    "detail": "last round: 2026-10-11",
+    "status": "pending",
+    "asked_at": "2026-11-14T12:01:23+00:00",
+    "answered_at": null
+  }
+]
