@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { api, usePoll, pct, signed } from "./api.js";
 import LineChart, { Legend } from "./LineChart.jsx";
+import { OpenForm } from "./Paper.jsx";
 
 const SORTS = { rank: (a, b) => a.rank - b.rank, code: (a, b) => a.code.localeCompare(b.code), sector: (a, b) => (a.sector || "~").localeCompare(b.sector || "~") || a.rank - b.rank };
 
@@ -52,7 +53,7 @@ const PRICE = [
   { key: "index", label: "Nifty 200", color: "var(--s-index)" },
 ];
 
-function Detail({ code, back }) {
+function Detail({ code, back, go }) {
   const [s, error, reload] = usePoll(`stocks/${encodeURIComponent(code)}`);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -83,6 +84,10 @@ function Detail({ code, back }) {
         {series && <><Legend series={series} /><LineChart dates={s.prices.dates} series={series} fmt={v => v.toFixed(0)} label={`${s.code} against the Nifty 200 over a year`} />
           <span className="small muted">The past year, both started at 100. Past moves are context, not a forecast.</span></>}
       </section>
+      <details className="panel">
+        <summary><strong>Paper position</strong> <span className="small muted">practise with pretend money and write down why</span></summary>
+        <OpenForm code={s.code} onDone={() => go("paper")} />
+      </details>
       <div className="two">
         <section className="panel">
           <h3>Why the model ranks it here</h3>
@@ -108,7 +113,7 @@ function Detail({ code, back }) {
 
 export default function Stocks({ arg, go }) {
   const [data, error] = usePoll("stocks");
-  if (arg) return <Detail code={decodeURIComponent(arg)} back={() => go("stocks")} />;
+  if (arg) return <Detail code={decodeURIComponent(arg)} back={() => go("stocks")} go={go} />;
   if (error) return null;
   if (!data) return <p className="muted">Loading…</p>;
   if (!data.stocks.length) return <p className="empty">No weekly ranking yet. Run the team's weekly jobs first.</p>;

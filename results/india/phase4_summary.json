@@ -6,7 +6,7 @@
     "2020-12-22"
   ],
   "researchers": 3,
-  "factors_proposed": 439,
+  "factors_proposed": 532,
   "per_researcher": [
     {
       "researcher": "gemini: gemini-3.8-flash",
@@ -25,16 +25,16 @@
     {
       "researcher": "groq: openai/gpt-oss-120b",
       "round0_useful_pct": 0.0,
-      "feedback_first_useful_pct": 3.3333333333333335,
+      "feedback_first_useful_pct": 2.2222222222222223,
       "feedback_last_useful_pct": 0.0,
-      "feedback_mean_useful_pct": 2.777777777777778,
+      "feedback_mean_useful_pct": 1.693121693121693,
       "feedback_rounds": 3,
-      "feedback_backwards_pct": 3.8888888888888893,
+      "feedback_backwards_pct": 4.1269841269841265,
       "control_first_useful_pct": 0.0,
       "control_last_useful_pct": 0.0,
       "control_mean_useful_pct": 0.0,
       "control_rounds": 3,
-      "control_backwards_pct": 11.302681992337165
+      "control_backwards_pct": 7.394870692743033
     },
     {
       "researcher": "openrouter: auto-free",
@@ -188,6 +188,6 @@
     "feedback": 21,
     "control": 2
   },
-  "useful_pct_feedback": 9.4,
+  "useful_pct_feedback": 9.0,
   "useful_pct_control": 0.7
 }

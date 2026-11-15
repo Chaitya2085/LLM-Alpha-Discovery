@@ -2,7 +2,7 @@
 questions from the activity log.
 
   every run      Data Collector -> Data Checker -> Regime Watcher
-  weekly         Model Trainer -> Risk Officer -> Explainer -> Reporter -> Compliance Officer
+  weekly         Model Trainer -> Critic -> Risk Officer -> Explainer -> Reporter -> Compliance Officer
   monthly        Research lead (asks for approval first; runs only after you approve)
 
 The weekly jobs run when you pass --weekly, or automatically when the last ledger entry is 7+ days old.
@@ -14,7 +14,7 @@ import os
 from datetime import date
 from pathlib import Path
 
-from .agents import (ComplianceOfficer, DataChecker, DataCollector, Explainer, ModelTrainer, RegimeWatcher,
+from .agents import (ComplianceOfficer, Critic, DataChecker, DataCollector, Explainer, ModelTrainer, RegimeWatcher,
                      Reporter, ResearchLead, RiskOfficer)
 from .core import OK, STOP, WARN, Agent, Approvals, Context, EventLog, Journal, Result, new_run_id
 
@@ -69,14 +69,14 @@ class ChiefStrategist(Agent):
     def __init__(self, team: dict[str, Agent] | None = None):
         self.team = team or {
             "collect": DataCollector(), "check": DataChecker(), "regime": RegimeWatcher(),
-            "model": ModelTrainer(), "risk": RiskOfficer(), "explain": Explainer(), "report": Reporter(),
+            "model": ModelTrainer(), "critic": Critic(), "risk": RiskOfficer(), "explain": Explainer(), "report": Reporter(),
             "comply": ComplianceOfficer(), "research": ResearchLead()}
 
     def plan(self, ctx: Context, today: date) -> list[str]:
         steps = ["collect", "check", "regime"]
         if ctx.weekly or weekly_due(ctx, today):
             ctx.weekly = True
-            steps += ["model", "risk", "explain", "report", "comply"]
+            steps += ["model", "critic", "risk", "explain", "report", "comply"]
         steps.append("research")
         return steps
 

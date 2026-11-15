@@ -8,6 +8,8 @@
     "status": "approved",
     "asked_at": "2026-11-14T12:01:23+00:00",
     "answered_at": "2026-11-14T12:28:17+00:00",
-    "note": ""
+    "note": "",
+    "done_at": "2026-11-14T14:39:33+00:00",
+    "outcome": "finished"
   }
 ]

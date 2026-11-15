@@ -8,6 +8,7 @@ import Week from "./Week.jsx";
 import Stocks from "./Stocks.jsx";
 import Lab from "./Lab.jsx";
 import Strategies from "./Strategies.jsx";
+import Paper from "./Paper.jsx";
 
 const PAGES = [
   { id: "room", label: "War room" },
@@ -15,6 +16,7 @@ const PAGES = [
   { id: "stocks", label: "Stocks" },
   { id: "lab", label: "Research lab" },
   { id: "strategies", label: "Strategies" },
+  { id: "paper", label: "Paper journal" },
   { id: "track", label: "Track record" },
 ];
 const parse = () => { const [p, ...rest] = location.hash.slice(1).split("/"); return [p || "room", rest.join("/") || null]; };
@@ -51,6 +53,7 @@ function App() {
         {page === "stocks" && <Stocks arg={arg} go={go} />}
         {page === "lab" && <Lab preset={preset} />}
         {page === "strategies" && <Strategies test={e => { setPreset(e); go("lab"); }} />}
+        {page === "paper" && <Paper go={go} />}
         {page === "track" && <Track />}
       </main>
       <footer>Personal mode: this app runs only on your computer. {overview?.disclaimer}</footer>

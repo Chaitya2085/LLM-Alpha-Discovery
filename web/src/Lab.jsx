@@ -35,7 +35,13 @@ function Result({ r, i, job, onSaved, flip }) {
         <span className={`verdict-pill ${tone}`}>{label}</span>
       </div>
       <code className="expr">{r.expression || r.raw_expression}</code>
-      {r.hypothesis && <p className="small muted">{r.hypothesis}</p>}
+      {r.hypothesis && (() => {
+        const [idea, wrong] = r.hypothesis.split(/\s*Wrong if:\s*/i);
+        return <>
+          <p className="small muted">{idea}</p>
+          {wrong && <p className="small"><strong>Wrong if:</strong> {wrong}</p>}
+        </>;
+      })()}
       <p><strong>The Critic:</strong> {r.reason || r.error}</p>
       {r.judge_status === "scored" && (
         <div className="tiles">
@@ -48,6 +54,18 @@ function Result({ r, i, job, onSaved, flip }) {
       )}
       {series && <><Legend series={series} /><LineChart dates={r.curve.dates} series={series} fmt={v => `₹${v.toFixed(2)}L`} height={230} label="Growth of 1 lakh, 2014 to 2020" />
         <span className="small muted">₹1 lakh in the idea's top fifth each week, held 5 days, after Indian costs, 2014 to 2020 only.</span></>}
+      {r.robustness && r.robustness.status !== "n/a" && (
+        <div className="robust">
+          <span className={`verdict-pill ${r.robustness.status === "robust" ? "good" : "warn"}`}>{r.robustness.status === "robust" ? "Robust" : "Fragile"}</span>
+          <span className="small"> Nearby settings: {r.robustness.why}.</span>
+          <table className="mini"><tbody>{r.robustness.variants.map(v => (
+            <tr key={v.label}><td className="small muted">{v.label}</td><td className="num small"><code>{v.expression}</code></td>
+              <td className="r num small">{v.weekly_ic_t == null ? v.status : `t ${v.weekly_ic_t.toFixed(1)}`}</td>
+              <td className={`r num small ${v.net_excess_ann > 0 ? "pos" : "neg"}`}>{v.net_excess_ann == null ? "" : signed(v.net_excess_ann)}</td>
+              <td className="small">{v.holds ? "holds" : "breaks"}</td></tr>
+          ))}</tbody></table>
+        </div>
+      )}
       {r.closest_known && r.max_corr_known > 0.3 && <p className="small muted">Most similar known feature: {r.closest_known} (similarity {r.max_corr_known.toFixed(2)})</p>}
       <div className="row">
         {r.verdict === "backwards" && <button className="btn" onClick={() => flip(`-(${r.expression})`)}>Test the opposite idea</button>}

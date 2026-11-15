@@ -173,16 +173,26 @@ def exam_check(d: pd.DataFrame, weekly: pd.DataFrame) -> dict:
 
 
 def verdict(disc: dict, hold: dict) -> tuple[str, str]:
+    """Fixed rules. A warning has to show up in BOTH periods, for the next week or the next 4 weeks."""
     a, b = disc["weak_vs_rest_next_week"], hold["weak_vs_rest_next_week"]
     fa, fb = disc["weak_vs_rest_fall_4w"], hold["weak_vs_rest_fall_4w"]
     if a["t"] is None or b["t"] is None:
         return "NOT ENOUGH WEAK WEEKS", "Too few weak weeks in one of the periods to test it"
-    both_neg = a["diff"] < 0 and b["diff"] < 0
-    falls_worse = (fa["diff"] or 0) < 0 and (fb["diff"] or 0) < 0
-    if both_neg and a["t"] <= -2 and b["t"] <= -2:
-        return "USEFUL WARNING", "Weak scores came before worse weeks in both periods, beyond luck"
-    if (both_neg or falls_worse) and min(a["t"], b["t"]) < -1:
-        return "WEAK HINT", "Weak scores leaned towards worse weeks in both periods, but not beyond luck"
+    week_worse = a["diff"] < 0 and b["diff"] < 0
+    falls_deeper = fa["diff"] is not None and fb["diff"] is not None and fa["diff"] < 0 and fb["diff"] < 0
+    if (week_worse and max(a["t"], b["t"]) <= -2) or (falls_deeper and max(fa["t"], fb["t"]) <= -2):
+        what = "worse next weeks" if week_worse and max(a["t"], b["t"]) <= -2 else "deeper falls over the next 4 weeks"
+        return "USEFUL WARNING", f"Weak scores came before {what} in both periods, beyond luck"
+    parts = []
+    if week_worse:
+        parts.append("worse next weeks")
+    if falls_deeper:
+        parts.append("deeper falls over the next 4 weeks")
+    if parts and ((week_worse and max(a["t"], b["t"]) < -1) or (falls_deeper and max(fa["t"], fb["t"]) < -1)):
+        why = f"Weak scores came before {' and '.join(parts)} in both periods, but not beyond luck"
+        if not week_worse:
+            why += "; the very next week was not worse in both periods"
+        return "WEAK HINT", why
     return "NO WARNING VALUE", "A weak score did not reliably come before worse weeks; treat it as a description, not a warning"
 
 

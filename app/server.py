@@ -45,6 +45,7 @@ ROSTER = [
     ("Explainer", "Communications", "Turns the model's reasons into plain English"),
     ("Reporter", "Communications", "Drafts the personal and shareable reports"),
     ("Research lead", "Research lab", "Asks before running a monthly research round"),
+    ("Critic", "Research lab", "Writes a post-mortem for every week the ledger reveals"),
 ]
 
 
@@ -66,6 +67,18 @@ class RunRequest(BaseModel):
 class LabRequest(BaseModel):
     idea: str = ""
     expression: str = ""
+
+
+class PaperOpen(BaseModel):
+    code: str
+    amount: float
+    reason: str
+    stop_pct: float | None = None
+    plan_weeks: int | None = None
+
+
+class PaperClose(BaseModel):
+    note: str = ""
 
 
 class LabSave(BaseModel):
@@ -192,6 +205,8 @@ def create_app(cfg=None, ledger_paths=None, team_runner=None) -> FastAPI:
                                   "revealed": (lp["revealed"] / c["file"]).exists()})
         if lp["scores"].exists():
             out["scores"] = pd.read_csv(lp["scores"]).to_dict("records")
+        pm_f = res / "postmortems.json"
+        out["postmortems"] = json.loads(pm_f.read_text()) if pm_f.exists() else None
         audit_f = res / "edge_audit.json"
         out["audit"] = json.loads(audit_f.read_text()) if audit_f.exists() else None
         return clean(out)
@@ -369,6 +384,46 @@ def create_app(cfg=None, ledger_paths=None, team_runner=None) -> FastAPI:
         (folder / "private" / "stock_notes.json").write_text(json.dumps(notes, indent=1))
         EventLog(folder, "app").write("Explainer", "explain", f"Explained {code} in plain words", private=True)
         return note
+
+    # ------------------------------------------------------------ paper journal (personal mode)
+    import paper as paper_mod
+
+    @app.get("/api/paper")
+    def paper_get():
+        book = paper_mod.load(folder)
+        acct = paper_mod.mark(book, market()) if book["trades"] else {
+            "start_balance": book["start_balance"], "value": book["start_balance"], "peak": book["start_balance"],
+            "drawdown": 0.0, "cash": book["start_balance"], "invested": 0.0, "open": [], "closed": [], "curve": {},
+            "gate": paper_mod.gate(book, book["start_balance"], book["start_balance"]), "digest": {"closed": 0}}
+        return clean({**acct, "rules": {"max_open": paper_mod.MAX_OPEN, "max_share": paper_mod.MAX_SHARE,
+                                         "drawdown_pause": paper_mod.DRAWDOWN_PAUSE, "losing_streak": paper_mod.LOSING_STREAK,
+                                         "cooldown_days": paper_mod.COOLDOWN_DAYS, "min_reason": paper_mod.MIN_REASON}})
+
+    @app.post("/api/paper/open")
+    def paper_open(r: PaperOpen):
+        a158, _ = latest_rank("a158")
+        in_book = rank = None
+        if a158 is not None:
+            codes = a158["code"].astype(str).tolist()
+            if r.code in codes:
+                rank = codes.index(r.code) + 1
+                in_book = bool(a158["in_book"].iloc[rank - 1])
+        try:
+            t = paper_mod.open_position(folder, market(), r.code, r.amount, r.reason, r.stop_pct, r.plan_weeks,
+                                        in_book=in_book, rank=rank)
+        except paper_mod.Refused as e:
+            raise HTTPException(409, str(e))
+        EventLog(folder, "app").write("Risk Officer", "paper", f"Paper position opened in {r.code} after the checks",
+                                      private=True)
+        return t
+
+    @app.post("/api/paper/close/{trade_id}")
+    def paper_close(trade_id: str, r: PaperClose):
+        try:
+            t = paper_mod.close_position(folder, market(), trade_id, r.note)
+        except paper_mod.Refused as e:
+            raise HTTPException(404, str(e))
+        return t
 
     # ------------------------------------------------------------ research lab
     import research_lab

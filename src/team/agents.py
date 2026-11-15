@@ -125,8 +125,10 @@ class RegimeWatcher(Agent):
         ctx.shared["regime"] = now_
         self.health(ctx)
         if now_ != before:
-            msg = f"Market mood changed this week: {before} -> {now_}"
-            ctx.journal.add(self.name, msg)
+            msg = f"Market mood changed in the week to {reg.index[-1].date()}: {before} -> {now_}"
+            seen = ctx.journal.file.read_text() if ctx.journal.file.exists() else ""
+            if msg not in seen:
+                ctx.journal.add(self.name, msg)                 # once per change, however often the team runs
             self.say(ctx, "change", msg, WARN, regime=now_)
         else:
             msg = f"Market mood: {now_} (unchanged this week)"
@@ -267,6 +269,7 @@ class RiskOfficer(Agent):
                 self.say(ctx, "crowding", f"{variant}: {v:.0%} of the book is in {k}", WARN)
             all_flags[variant] = flags
             counts[variant] = len(flags)
+        self.paper(ctx, m)
         ctx.shared["risk"] = all_flags
         n = sum(counts.values())
         notes = []
@@ -277,6 +280,27 @@ class RiskOfficer(Agent):
         msg = (f"{n} risk flag(s) across the books" + (f"; {'; '.join(notes)}" if notes else ""))
         self.say(ctx, "review", msg, WARN if n else OK, flagged=counts)
         return Result(WARN if n else OK, msg, {"flagged": counts})
+
+
+    def paper(self, ctx: Context, m) -> None:
+        """The paper journal: stops and planned holding times reached, and the account's rules."""
+        import paper
+        book = paper.load(ctx.folder)
+        if not book["trades"]:
+            return
+        try:
+            acct = paper.mark(book, m)
+        except Exception as e:  # noqa: BLE001
+            self.say(ctx, "paper", f"Paper journal check skipped: {str(e)[:80]}", WARN)
+            return
+        ctx.shared["paper"] = acct
+        for r in acct["open"]:
+            for fl in r["flags"]:
+                self.say(ctx, "paper", f"Paper {r['code']}: {fl}", WARN, private=True)
+        g = acct["gate"]
+        msg = (f"Paper journal: {len(acct['open'])} open, account {acct['value'] / acct['start_balance'] - 1:+.1%}"
+               + ("" if g["allowed"] else "; new positions paused: " + "; ".join(g["reasons"])))
+        self.say(ctx, "paper", msg, OK if g["allowed"] else WARN)
 
 
 class ComplianceOfficer(Agent):
@@ -420,6 +444,13 @@ class Reporter(Agent):
             if isinstance(v, dict):
                 lines.append(f"- {k}: beat the index in {v['hit_rate']:.0%} of the last {v['weeks']} revealed "
                              f"weeks ({v['excess_ann']:+.1%} a year)")
+        acct = ctx.shared.get("paper")
+        if acct:
+            d = acct["digest"]
+            lines.append(f"- Paper journal: {len(acct['open'])} open position(s), account "
+                         f"{acct['value'] / acct['start_balance'] - 1:+.1%} since the start"
+                         + (f"; {d['closed']} closed, {d['win_rate']:.0%} gained, average {d['avg_vs_index']:+.1%} "
+                            f"against the Nifty 200 over the same days" if d.get("closed") else ""))
         for r in ctx.shared.get("results", []):
             if r["status"] != OK:
                 lines.append(f"- {r['agent']}: {r['summary']}")
@@ -474,6 +505,34 @@ class Reporter(Agent):
 
 
 # ---------------------------------------------------------------- research lab
+
+class Critic(Agent):
+    """After each sealed week is revealed: a post-mortem of why it went the way it did."""
+    name, desk = "Critic", "Research lab"
+
+    def run(self, ctx: Context) -> Result:
+        import ledger
+        import postmortem
+        p = ctx.ledger_paths or ledger.paths()
+        before = json.loads((ctx.cfg.results / "postmortems.json").read_text()) \
+            if (ctx.cfg.results / "postmortems.json").exists() else {"weeks": []}
+        try:
+            store = postmortem.run(ctx.cfg, p=p, m=ctx.market(), log=lambda *a: None)
+        except (Exception, SystemExit) as e:  # noqa: BLE001
+            self.say(ctx, "postmortem", f"Post-mortems skipped: {str(e)[:100]}", WARN)
+            return Result(WARN, "skipped")
+        new = store["weeks"][len(before["weeks"]):]
+        for pm in new:
+            self.say(ctx, "postmortem", f"Post-mortem, week after {pm['as_of']} ({pm['variant']}): " + pm["notes"][0])
+            ctx.journal.add(self.name, f"Week after {pm['as_of']} ({pm['variant']}): " + " ".join(pm["notes"][:3]))
+        if not new:
+            nxt = [c["as_of"] for c in ledger.read_commits(p) if not (p["revealed"] / c["file"]).exists()]
+            msg = (f"No newly revealed weeks; the next one opens 31 days after {nxt[0]}" if nxt
+                   else "No sealed weeks yet")
+            self.say(ctx, "wait", msg)
+            return Result(OK, msg)
+        return Result(OK, f"{len(new)} post-mortem(s) written")
+
 
 class ResearchLead(Agent):
     """Once a month, asks permission to run a round of the Phase 4 feedback loop (it spends API calls

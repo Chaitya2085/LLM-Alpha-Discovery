@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { usePoll, pct, signed, lakh } from "./api.js";
 import Audit from "./Audit.jsx";
 import Health from "./Health.jsx";
+import Postmortems from "./Postmortems.jsx";
 
 const SERIES = [
   { key: "model", label: "The model", color: "var(--s-model)", width: 2.5 },
@@ -175,6 +176,7 @@ export default function Track() {
       {t.audit && <Audit audit={t.audit} />}
       <Health />
       <Ledger rows={t.ledger} scores={t.scores} />
+      <Postmortems data={t.postmortems} ledger={t.ledger} />
     </>
   );
 }

@@ -37,3 +37,5 @@ jobs:
         run: python tests/test_edge_audit.py
       - name: Market health tests
         run: python tests/test_market_health.py
+      - name: Update 24 tests (post-mortems, robustness, paper journal)
+        run: python tests/test_update24.py

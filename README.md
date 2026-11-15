@@ -351,13 +351,13 @@ is simple: *does feedback make an LLM a better researcher?*
 
 <!-- AUTO:phase4_summary -->
 - Judged on **top-200 NSE**, 1 Jul 2014 to 22 Dec 2020: every week buy the top fifth by the factor, hold 5 days, pay costs, compare with holding all stocks equally
-- **439** new factors from **3** LLM researcher(s); **23** work after costs
+- **532** new factors from **3** LLM researcher(s); **23** work after costs
 - Share of new factors that work after costs: with feedback **9%**, without feedback **1%**
 
 | Researcher | Phase 2 factors that work weekly | With feedback: first → last round | Without feedback (avg) | Worked in reverse (with feedback) |
 |---|---|---|---|---|
 | gemini: gemini-3.8-flash | 8% | 20% → 17% (3 rounds) | 2% | 3% |
-| groq: openai/gpt-oss-120b | 0% | 3% → 0% (3 rounds) | 0% | 4% |
+| groq: openai/gpt-oss-120b | 0% | 2% → 0% (3 rounds) | 0% | 4% |
 | openrouter: auto-free | 0% | 12% → 7% (3 rounds) | 0% | 4% |
 <!-- /AUTO:phase4_summary -->
 
@@ -581,7 +581,7 @@ from [tradermonty/claude-trading-skills](https://github.com/tradermonty/claude-t
 | 2014–2020 | 285 | -0.08% (86 weeks) | +0.30% | -0.39% (-1.0) | -3.56% vs -2.46% |
 | 2021–now | 305 | +0.80% (60 weeks) | +0.23% | +0.57% (1.3) | -2.65% vs -2.18% |
 
-Today: **68/100 (middle)** on 2026-11-13. Verdict: **WEAK HINT**: Weak scores leaned towards worse weeks in both periods, but not beyond luck.
+Today: **68/100 (middle)** on 2026-11-13. Verdict: **WEAK HINT**: Weak scores came before deeper falls over the next 4 weeks in both periods, but not beyond luck; the very next week was not worse in both periods.
 - Alpha158 + LLM factors (exam weeks): always invested +18.1% a year, worst fall -20%; half in cash when weak +14.5%, worst fall -21% (49 weak weeks of 280).
 - Alpha158 only (exam weeks): always invested +19.7% a year, worst fall -21%; half in cash when weak +15.6%, worst fall -23% (49 weak weeks of 280).
 <!-- /AUTO:market_health -->
@@ -596,8 +596,32 @@ calls on named stocks needs SEBI registration. After 31 days each file is reveal
 back-date a prediction. `python src/ledger.py verify` re-checks the whole chain.
 
 <!-- AUTO:ledger_status -->
-- **4** weekly predictions fingerprinted, from 2026-11-02 to 2026-11-13; **0** revealed (31+ days old)
+- **2** week(s) of predictions fingerprinted (4 books), from 2026-11-02 to 2026-11-13; **0** book(s) revealed (31+ days old)
 <!-- /AUTO:ledger_status -->
+
+### Learning from every week: post-mortems, a robustness check, and a paper journal
+
+Three habits adapted from [tradermonty/claude-trading-skills](https://github.com/tradermonty/claude-trading-skills)
+(signal-postmortem, backtest-expert, trader-memory-core, drawdown-circuit-breaker; MIT), rebuilt here:
+
+- **The Critic's post-mortems** (`src/postmortem.py`, a new agent): when a sealed week is revealed,
+  one write-up from the numbers only: the book against the index and equal weight, whether higher-ranked
+  stocks did better across all 200, which sector bets helped or hurt, whether the model's main reasons
+  paid off, and the market at the time. Written once, never edited. After 8 weeks it shows how often the
+  book won in each market mood and health zone.
+- **Robustness in the research lab**: every idea is re-tested with its windows halved, x1.5 and doubled.
+  It is "robust" only if at least two of the three keep the signal (same direction, at least half the
+  strength), so an idea that only works at one lucky setting is flagged. The Researcher also writes
+  "Wrong if: ..." for every idea before it is tested.
+- **A paper journal** (`src/paper.py`, personal mode, never committed): practise with pretend money from
+  any stock page. A written reason is required first; the Risk Officer allows at most 10 open positions
+  and 20% in one stock, pauses new positions 10% below the account's high or after 3 losses in a row,
+  and flags stops and planned holding times. A weekly review compares your closed positions with the
+  Nifty 200 and with the model's book.
+
+<!-- AUTO:postmortems -->
+_The first post-mortem is written after the first sealed week opens (31 days after it was recorded)._
+<!-- /AUTO:postmortems -->
 
 **Checks:** 5 Phase 6 tests: the luck statistics match their formulas; on a synthetic market the
 exam is frozen, finds a planted edge and refuses an unrecorded second run; the leakage test flags an

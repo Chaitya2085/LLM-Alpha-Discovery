@@ -1,5 +1,5 @@
 {
- "created_at": "2026-11-14T13:00:58.216775+00:00",
+ "created_at": "2026-11-15T05:45:14.557248+00:00",
  "as_of": "2026-11-13",
  "score": 67.61787619764074,
  "zone": "middle",
@@ -38,7 +38,7 @@
   }
  },
  "verdict": "WEAK HINT",
- "why": "Weak scores leaned towards worse weeks in both periods, but not beyond luck",
+ "why": "Weak scores came before deeper falls over the next 4 weeks in both periods, but not beyond luck; the very next week was not worse in both periods",
  "test": {
   "discovery": {
    "from": "2015-07-17",

@@ -21,7 +21,7 @@ const DESK_SPOTS = {       // where each agent's desk sits inside its room (offs
   "Chief Strategist": [0, -1.4],
   "Data Collector": [-1.8, -1.2], "Data Checker": [1.8, -1.2],
   "Regime Watcher": [-1.8, -1.2], "Model Trainer": [1.8, -1.2],
-  "Research lead": [-1.2, -1.2],
+  "Research lead": [-1.2, -1.2], "Critic": [1.6, 1.2],
   "Risk Officer": [-1.8, 1.2], "Compliance Officer": [1.8, 1.2],
   "Explainer": [-1.8, 1.2], "Reporter": [1.8, 1.2],
 };
@@ -268,7 +268,6 @@ export default class Office3D {
     this.plant(mr.x[0] + 0.6, mr.z[1] - 0.6, 0.9);
     const rl = room("Research lab"), [rx, rz] = centre(rl);
     this.box(2.6, 1.3, 0.05, new THREE.MeshStandardMaterial({ color: "#f4f1ea", roughness: 0.4 }), rx + 1.2, 1.55, rl.z[0] + 0.12);
-    this.box(1.2, 0.75, 1.2, m.deskTop, rx + 1.8, 0.38, rz + 1.3);
     this.plant(rl.x[1] - 0.6, rl.z[1] - 0.6); this.plant(rl.x[1] - 0.6, rl.z[0] + 0.6, 1.2);
     // reception & lounge: reception desk + sign, sofas, pool table, coffee machine
     const rc = room("Reception"), [cx, cz] = centre(rc);
@@ -314,7 +313,7 @@ export default class Office3D {
     return { "Chief Strategist": "Head office", "Data Collector": "Market data", "Data Checker": "Market data",
       "Regime Watcher": "Model room", "Model Trainer": "Model room", "Risk Officer": "Risk & compliance",
       "Compliance Officer": "Risk & compliance", "Explainer": "Communications", "Reporter": "Communications",
-      "Research lead": "Research lab" }[name];
+      "Research lead": "Research lab", "Critic": "Research lab" }[name];
   }
 
   screen(w, h, x, y, z, cw, chh, standing = false) {

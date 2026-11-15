@@ -11,6 +11,7 @@ to the factor library unless you ask (save_to_library).
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 import uuid
@@ -45,8 +46,9 @@ def idea_prompt(idea: str, n: int = 3) -> str:
             f"Write {n} different factor expressions that test this idea as faithfully as possible "
             "(different windows or formulations of the same idea, not unrelated ideas). If part of the idea "
             "needs data the language doesn't have (news, earnings, sectors), test the closest part that can "
-            "be measured and say so in the hypothesis. Check every expression against the language rules "
-            "(operator names, argument counts, integer windows 1-60).")
+            "be measured and say so in the hypothesis. End every hypothesis with one sentence that starts "
+            "'Wrong if:' and says what result would show the idea is false. Check every expression against "
+            "the language rules (operator names, argument counts, integer windows 1-60).")
 
 
 def curve(lab, expression: str) -> dict:
@@ -67,6 +69,50 @@ def curve(lab, expression: str) -> dict:
             "equal": np.round(np.cumprod(1 + univ.to_numpy()), 4).tolist()}
 
 
+WINDOW = re.compile(r",\s*(\d+)\s*\)")                # a window: the last, whole-number argument of a call
+SCALES = (0.5, 1.5, 2.0)
+MAX_WINDOW = 60
+
+
+def variants(expression: str) -> list[tuple[str, str]]:
+    """The same formula with every window scaled (half, 1.5x, double), clamped to 2-60."""
+    if not WINDOW.search(expression):
+        return []
+    out, seen = [], {expression}
+    for k in SCALES:
+        v = WINDOW.sub(lambda m: f", {min(MAX_WINDOW, max(2, round(int(m.group(1)) * k)))})"
+                       if int(m.group(1)) >= 2 else m.group(0), expression)
+        if v not in seen:
+            seen.add(v)
+            out.append((f"windows x{k:g}", v))
+    return out
+
+
+def robustness(lab, rec: dict) -> dict:
+    """Beat the idea to death a little: does it survive nearby settings? Fixed rule: a variant 'holds'
+    if its weekly signal points the same way with at least half the strength (t). Robust = at least
+    two thirds of the variants hold."""
+    t0 = rec.get("weekly_ic_t")
+    vs = variants(rec.get("expression") or "")
+    if t0 is None or not vs:
+        return {"status": "n/a", "why": "no windows to vary" if not vs else "not scored"}
+    rows = []
+    for label, expr in vs:
+        j = lab.measure(expr)["judge"]
+        if j.get("status") != "scored":
+            rows.append({"label": label, "expression": expr, "holds": False, "status": j.get("status")})
+            continue
+        t, net = j["weekly_ic_t"], j["net_excess_ann"]
+        holds = np.sign(t) == np.sign(t0) and abs(t) >= 0.5 * abs(t0)
+        rows.append({"label": label, "expression": expr, "weekly_ic_t": float(t), "net_excess_ann": float(net),
+                     "holds": bool(holds)})
+    held = sum(r["holds"] for r in rows)
+    ok = held * 3 >= 2 * len(rows)
+    return {"status": "robust" if ok else "fragile", "held": held, "tried": len(rows), "variants": rows,
+            "why": (f"{held} of {len(rows)} nearby settings keep the signal" if ok else
+                    f"only {held} of {len(rows)} nearby settings keep the signal; it may depend on one lucky setting")}
+
+
 def evaluate(cfg, reply_text: str, source: dict, with_curve: bool = True) -> list[dict]:
     """Parse a reply ({"factors": [...]}) and judge every formula in it (no saving)."""
     from feedback_loop import assess
@@ -82,6 +128,8 @@ def evaluate(cfg, reply_text: str, source: dict, with_curve: bool = True) -> lis
         if r.get("status") == "duplicate" and r.get("expression") in known:
             k = known[r["expression"]]
             r["reason"] = f"already in the library as {k['id']} \"{k.get('name', '')}\""
+        if r.get("judge_status") == "scored" and r.get("verdict") not in ("copy", "duplicate", "broken"):
+            r["robustness"] = robustness(lab, r)
         if with_curve and r.get("judge_status") == "scored":
             try:
                 r["curve"] = curve(lab, r["expression"])
@@ -110,8 +158,9 @@ def save_to_library(rec: dict) -> dict:
                                      "model", "prompt_version", "n_nodes", "depth", "lookback", "fields", "idea")}
     new = {"id": f"F{len(library) + 1:04d}", **keep, "phase": "lab", "status": "valid", "error": None,
            "run_file": "app research lab", "created_at": datetime.now(timezone.utc).isoformat(),
-           "lab": {k: rec.get(k) for k in ("verdict", "reason", "weekly_ic", "weekly_ic_t", "net_excess_ann",
-                                            "gross_excess_ann", "hit_rate", "turnover", "years_same_sign")}}
+           "lab": {**{k: rec.get(k) for k in ("verdict", "reason", "weekly_ic", "weekly_ic_t", "net_excess_ann",
+                                               "gross_excess_ann", "hit_rate", "turnover", "years_same_sign")},
+                   "robustness": (rec.get("robustness") or {}).get("status")}}
     append_library([new])
     return new
 

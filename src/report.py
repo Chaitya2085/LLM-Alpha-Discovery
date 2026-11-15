@@ -342,8 +342,9 @@ def ledger_status() -> str | None:
         return None
     commits = list(csv.DictReader(c.open()))
     revealed = list((ROOT / "ledger" / "revealed").glob("*.csv")) if (ROOT / "ledger" / "revealed").exists() else []
-    lines = [f"- **{len(commits)}** weekly predictions fingerprinted, from {commits[0]['as_of']} to "
-             f"{commits[-1]['as_of']}; **{len(revealed)}** revealed (31+ days old)"]
+    weeks = len({c["as_of"] for c in commits})
+    lines = [f"- **{weeks}** week(s) of predictions fingerprinted ({len(commits)} books), from {commits[0]['as_of']} "
+             f"to {commits[-1]['as_of']}; **{len(revealed)}** book(s) revealed (31+ days old)"]
     sf = ROOT / "ledger" / "scores.csv"
     if sf.exists():
         sc = pd.read_csv(sf)
@@ -380,6 +381,14 @@ def market_health_table(cfg=INDIA) -> str | None:
     return market_health.table(json.loads(f.read_text()))
 
 
+def postmortem_table(cfg=INDIA) -> str | None:
+    f = cfg.results / "postmortems.json"
+    if not f.exists():
+        return None
+    import postmortem
+    return postmortem.table(json.loads(f.read_text()))
+
+
 BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "phase2_shortlist": phase2_shortlist, "phase2_models": phase2_models,
           "india_data": india_data,
@@ -390,7 +399,8 @@ BLOCKS = {"phase1_table": phase1_table, "phase2_summary": phase2_summary,
           "phase4_summary": phase4_summary, "phase4_best": phase4_best,
           "phase5_table": phase5_table, "phase5_grid": phase5_grid, "phase5_regimes": phase5_regimes,
           "phase6_table": phase6_table, "leakage_table": leakage_table, "ledger_status": ledger_status,
-          "edge_audit": edge_audit_table, "market_health": market_health_table}
+          "edge_audit": edge_audit_table, "market_health": market_health_table,
+          "postmortems": postmortem_table}
 
 
 def main() -> None:
